@@ -145,60 +145,127 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size)
 	return false;
 }
 
+// assumes that the box is smaller than one tile
 void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity)
 {
-	// do the move
+	ivec2 Dirs[4] = {ivec2(1, 0), ivec2(0, 1), ivec2(-1, 0), ivec2(0, -1)};
+	int DirValue[4] = {1,1,-1,-1};
+	int DirDim[4] = {0, 1, 0, 1};
+
 	vec2 Pos = *pInoutPos;
 	vec2 Vel = *pInoutVel;
+	vec2 NewVel = Vel;
 
-	float Distance = length(Vel);
-	int Max = (int)Distance;
-
-	if(Distance > 0.00001f)
+	while(length(Vel) > 0.00001)
 	{
-		//vec2 old_pos = pos;
-		float Fraction = 1.0f/(float)(Max+1);
-		for(int i = 0; i <= Max; i++)
+		int x = Pos.x / 32;
+		int y = Pos.y / 32;
+
+		if(x == Pos.x / 32 && Vel.x < 0)
+			x--;
+		if(y == Pos.y / 32 && Vel.y < 0)
+			y--;
+
+		ivec2 TilePos = ivec2(x, y);
+		vec2 TileMid = vec2(TilePos.x * 32 + 16, TilePos.y * 32 + 16);
+		vec2 PosOffset = Pos - TileMid;
+		float MinCrossingTime = 1.0f;
+		int FirstDir = -1;
+		int FirstBorder = 0;
+		bool Outer = false;
+
+		for(int i = 0; i < 4; i++)
 		{
-			//float amount = i/(float)max;
-			//if(max == 0)
-				//amount = 0;
+			int Sign = DirValue[i];
+			int Dim = DirDim[i];
 
-			vec2 NewPos = Pos + Vel*Fraction; // TODO: this row is not nice
+			if(Vel[Dim] * Sign <= 0)
+				continue;
 
-			if(TestBox(vec2(NewPos.x, NewPos.y), Size))
+			if(PosOffset[Dim] * Sign <= 16 - Size[Dim] / 2)
 			{
-				int Hits = 0;
-
-				if(TestBox(vec2(Pos.x, NewPos.y), Size))
+				int Border = TileMid[Dim] + (16 - Size[Dim] / 2) * Sign;
+				float CrossingTime = (Border - Pos[Dim]) / Vel[Dim];
+				if(CrossingTime >= 0 && CrossingTime < 1 && (i == 0 || CrossingTime < MinCrossingTime))
 				{
-					NewPos.y = Pos.y;
-					Vel.y *= -Elasticity;
-					Hits++;
-				}
-
-				if(TestBox(vec2(NewPos.x, Pos.y), Size))
-				{
-					NewPos.x = Pos.x;
-					Vel.x *= -Elasticity;
-					Hits++;
-				}
-
-				// neither of the tests got a collision.
-				// this is a real _corner case_!
-				if(Hits == 0)
-				{
-					NewPos.y = Pos.y;
-					Vel.y *= -Elasticity;
-					NewPos.x = Pos.x;
-					Vel.x *= -Elasticity;
+					ivec2 Neighbor = TilePos + Dirs[i];
+					bool Collision = IsTileSolid(32 * Neighbor.x, 32 * Neighbor.y);
+					float OtherDimPosOffset = Pos[1 - Dim] + Vel[1 - Dim] * CrossingTime - TileMid[1 - Dim];
+					if(fabs(OtherDimPosOffset) > 16 - Size[1 - Dim] / 2)
+					{
+						ivec2 CornerNeighbor = Neighbor;
+						CornerNeighbor[1 - Dim] += (OtherDimPosOffset > 0) - (OtherDimPosOffset < 0);
+						Collision |= IsTileSolid(32 * CornerNeighbor.x, 32 * CornerNeighbor.y);
+					}
+					if(Collision)
+					{
+						FirstBorder = Border;
+						MinCrossingTime = CrossingTime;
+						FirstDir = i;
+						Outer = false;
+					}
 				}
 			}
+			else
+			{
+				int Border = TileMid[Dim] + 16 * Sign;
+				float CrossingTime = (Border - Pos[Dim]) / Vel[Dim];
+				if(CrossingTime > 0 && CrossingTime <= 1 && (i == 0 || CrossingTime < MinCrossingTime))
+				{
+					FirstBorder = Border;
+					MinCrossingTime = CrossingTime;
+					FirstDir = i;
+					Outer = true;
+				}
+			}
+		}
 
-			Pos = NewPos;
+		if(FirstDir != -1)
+		{
+			int Sign = DirValue[FirstDir];
+			int Dim = DirDim[FirstDir];
+
+			Pos[1 - Dim] += Vel[1 - Dim] * MinCrossingTime;
+			Pos[Dim] = FirstBorder;
+			Vel *= 1 - MinCrossingTime;
+
+			if(!Outer)
+			{
+				dbg_msg("dbg", "Collision on %d, %d in Direction %d", x, y, FirstDir);
+				Vel[Dim] *= Elasticity * Sign;
+				NewVel[Dim] *= Elasticity * Sign;
+			}
+		}
+		else
+		{
+			Pos += Vel;
+			Vel = vec2(0.0f, 0.0f);
 		}
 	}
 
 	*pInoutPos = Pos;
-	*pInoutVel = Vel;
+	*pInoutVel = NewVel;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
