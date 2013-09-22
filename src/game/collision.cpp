@@ -156,7 +156,7 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 	vec2 Vel = *pInoutVel;
 	vec2 NewVel = Vel;
 
-	while(length(Vel) > 0.00001)
+	while(length(Vel) > 0)
 	{
 		int x = Pos.x / 32;
 		int y = Pos.y / 32;
@@ -168,72 +168,94 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 
 		ivec2 TilePos = ivec2(x, y);
 		vec2 TileMid = vec2(TilePos.x * 32 + 16, TilePos.y * 32 + 16);
-		vec2 PosOffset = Pos - TileMid;
+		int Sign[2] = {(Vel.x > 0) - (Vel.x < 0), (Vel.y > 0) - (Vel.y < 0)};
+		bool NeighborSolid[2] = {IsTileSolid((x + Sign[0]) * 32, y * 32), IsTileSolid(x * 32, (y + Sign[1]) * 32)};
+
 		float MinCrossingTime = 1.0f;
-		int FirstDir = -1;
+		int FirstDim = -1;
+		int FirstSign = 0;
 		int FirstBorder = 0;
 		bool Outer = false;
 
-		for(int i = 0; i < 4; i++)
+		for(int i = 0; i < 2; i++)
 		{
-			int Sign = DirValue[i];
-			int Dim = DirDim[i];
-
-			if(Vel[Dim] * Sign <= 0)
+			if(Vel[i] == 0)
 				continue;
 
-			if(PosOffset[Dim] * Sign <= 16 - Size[Dim] / 2)
+			int InnerBorder = floor(TileMid[i] + (15.5f - Size[i] / 2) * Sign[i]);
+			int OuterBorder = TileMid[i] + 16 * Sign[i];
+			if(Pos[i] * Sign[i] <= InnerBorder * Sign[i])
 			{
-				int Border = TileMid[Dim] + (16 - Size[Dim] / 2) * Sign;
-				float CrossingTime = (Border - Pos[Dim]) / Vel[Dim];
-				if(CrossingTime >= 0 && CrossingTime < 1 && (i == 0 || CrossingTime < MinCrossingTime))
+				float CrossingTime = (InnerBorder - Pos[i]) / Vel[i];
+				if(CrossingTime >= 0 && CrossingTime < 1 && CrossingTime <= MinCrossingTime)
 				{
-					ivec2 Neighbor = TilePos + Dirs[i];
-					bool Collision = IsTileSolid(32 * Neighbor.x, 32 * Neighbor.y);
-					float OtherDimPosOffset = Pos[1 - Dim] + Vel[1 - Dim] * CrossingTime - TileMid[1 - Dim];
-					if(fabs(OtherDimPosOffset) > 16 - Size[1 - Dim] / 2)
+					bool Collision = NeighborSolid[i];
+					if(!Collision)
 					{
-						ivec2 CornerNeighbor = Neighbor;
-						CornerNeighbor[1 - Dim] += (OtherDimPosOffset > 0) - (OtherDimPosOffset < 0);
-						Collision |= IsTileSolid(32 * CornerNeighbor.x, 32 * CornerNeighbor.y);
+						int LowOtherBorder = TileMid[1 - i] - (16 - Size[1 - i] / 2);
+						int HighOtherBorder = TileMid[1 - i] + (15 - Size[1 - i] / 2);
+						float OtherDimNewPos = Pos[1 - i] + Vel[1 - i] * CrossingTime;
+						ivec2 CornerNeighbor = TilePos;
+						CornerNeighbor[i] += Sign[i];
+						if(OtherDimNewPos >= HighOtherBorder)
+						{
+							CornerNeighbor[1 - i]++;
+							if(OtherDimNewPos > HighOtherBorder)
+								Collision |= IsTileSolid(32 * CornerNeighbor.x, 32 * CornerNeighbor.y);
+							else if(OtherDimNewPos == HighOtherBorder && Vel[1 - i] > 0)
+							{
+								ivec2 OtherNeighbor = TilePos;
+								OtherNeighbor[1 - i]++;
+								Collision |= IsTileSolid(32 * CornerNeighbor.x, 32 * CornerNeighbor.y)
+									&& !IsTileSolid(32 * OtherNeighbor.x, 32 * OtherNeighbor.y);
+							}
+						}
+						else if(OtherDimNewPos <= LowOtherBorder)
+						{
+							CornerNeighbor[1 - i]--;
+							if(OtherDimNewPos < LowOtherBorder)
+								Collision |= IsTileSolid(32 * CornerNeighbor.x, 32 * CornerNeighbor.y);
+							else if(OtherDimNewPos == LowOtherBorder && Vel[1 - i] < 0)
+							{
+								ivec2 OtherNeighbor = TilePos;
+								OtherNeighbor[1 - i]--;
+								Collision |= IsTileSolid(32 * CornerNeighbor.x, 32 * CornerNeighbor.y)
+									&& !IsTileSolid(32 * OtherNeighbor.x, 32 * OtherNeighbor.y);
+							}
+						}
 					}
 					if(Collision)
 					{
-						FirstBorder = Border;
+						FirstBorder = InnerBorder;
 						MinCrossingTime = CrossingTime;
-						FirstDir = i;
+						FirstDim = i;
 						Outer = false;
 					}
 				}
 			}
-			else
+			else if(Pos[i] * Sign[i] <= OuterBorder * Sign[i])
 			{
-				int Border = TileMid[Dim] + 16 * Sign;
-				float CrossingTime = (Border - Pos[Dim]) / Vel[Dim];
-				if(CrossingTime > 0 && CrossingTime <= 1 && (i == 0 || CrossingTime < MinCrossingTime))
+				float CrossingTime = (OuterBorder - Pos[i]) / Vel[i];
+				if(CrossingTime >= 0 && CrossingTime < 1 && CrossingTime < MinCrossingTime)
 				{
-					FirstBorder = Border;
+					FirstBorder = OuterBorder;
 					MinCrossingTime = CrossingTime;
-					FirstDir = i;
+					FirstDim = i;
 					Outer = true;
 				}
 			}
 		}
 
-		if(FirstDir != -1)
+		if(FirstDim != -1)
 		{
-			int Sign = DirValue[FirstDir];
-			int Dim = DirDim[FirstDir];
-
-			Pos[1 - Dim] += Vel[1 - Dim] * MinCrossingTime;
-			Pos[Dim] = FirstBorder;
+			Pos[1 - FirstDim] += Vel[1 - FirstDim] * MinCrossingTime;
+			Pos[FirstDim] = FirstBorder;
 			Vel *= 1 - MinCrossingTime;
 
 			if(!Outer)
 			{
-				dbg_msg("dbg", "Collision on %d, %d in Direction %d", x, y, FirstDir);
-				Vel[Dim] *= Elasticity * Sign;
-				NewVel[Dim] *= Elasticity * Sign;
+				Vel[FirstDim] *= Elasticity * FirstSign;
+				NewVel[FirstDim] *= Elasticity * FirstSign;
 			}
 		}
 		else
@@ -246,26 +268,3 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 	*pInoutPos = Pos;
 	*pInoutVel = NewVel;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
