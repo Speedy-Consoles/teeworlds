@@ -24,10 +24,10 @@ struct CTeam
 	int m_Mode;
 };
 
-class CTeamsCore
+class CTeamCore
 {
 public:
-	CTeamsCore();
+	CTeamCore();
 	void InitCollision(class CLayers *pLayers);
 	int GetTeamMode(int Team) const { return m_aTeams[Team].m_Mode; }
 	int GetTeamState(int Team) const { return m_aTeams[Team].m_State; }
@@ -41,8 +41,6 @@ public:
 	void Snap(int SnappingClient);
 	void PostSnap();
 	void Reset(int Team);
-
-	int GetTeamWorldID(CGameWorld *pWorld);
 
 	CGameContext *m_pGameServer;
 private:

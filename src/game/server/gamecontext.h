@@ -11,7 +11,7 @@
 
 #include "eventhandler.h"
 #include "gameworld.h"
-#include "teamscore.h"
+#include "teamcore.h"
 
 /*
 	Tick
@@ -72,7 +72,7 @@ class CGameContext : public IGameServer
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
-	CCollision *GetCollision(int WorldID) { return m_TeamsCore.GetTeamCollision(WorldID); }
+	CCollision *GetCollision(int WorldID) { return m_TeamCore.GetTeamCollision(WorldID); }
 	CTuningParams *Tuning() { return &m_Tuning; }
 
 	CGameContext();
@@ -84,13 +84,13 @@ public:
 
 	class IGameController *m_pController;
 	//CGameWorld m_World;
-	CTeamsCore m_TeamsCore;
+	CTeamCore m_TeamCore;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
 	int GetPlayerWorldID(int ClientID);
 
-	void ResetController(CGameWorld *pWorld);
+	void ResetPlayers(CGameWorld *pWorld);
 
 	int m_LockTeams;
 

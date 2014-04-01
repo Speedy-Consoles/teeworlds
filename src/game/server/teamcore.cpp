@@ -1,12 +1,12 @@
-#include "teamscore.h"
+#include "teamcore.h"
 #include "gamecontext.h"
 #include "player.h"
 
-CTeamsCore::CTeamsCore()
+CTeamCore::CTeamCore()
 {
 }
 
-void CTeamsCore::InitCollision(class CLayers *pLayers)
+void CTeamCore::InitCollision(class CLayers *pLayers)
 {
 	m_aTeams[0].m_Collision.Init(pLayers, m_aTeams[0].m_TeamWorld.m_aSwitchStates);
 	for(int i = 1; i < MAX_CLIENTS; i++)
@@ -18,23 +18,23 @@ void CTeamsCore::InitCollision(class CLayers *pLayers)
 	}
 }
 
-void CTeamsCore::Tick()
+void CTeamCore::Tick()
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		m_aTeams[i].m_TeamWorld.Tick();
 }
 
-void CTeamsCore::SetTeamMode(int Team, int Mode)
+void CTeamCore::SetTeamMode(int Team, int Mode)
 {
 	m_aTeams[Team].m_Mode = Mode;
 }
 
-void CTeamsCore::SetTeamState(int Team, int State)
+void CTeamCore::SetTeamState(int Team, int State)
 {
 	m_aTeams[Team].m_State = State;
 }
 
-void CTeamsCore::SetGameServer(CGameContext *pGameServer)
+void CTeamCore::SetGameServer(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -44,7 +44,7 @@ void CTeamsCore::SetGameServer(CGameContext *pGameServer)
 	}
 }
 
-void CTeamsCore::Snap(int SnappingClient)
+void CTeamCore::Snap(int SnappingClient)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -53,7 +53,7 @@ void CTeamsCore::Snap(int SnappingClient)
 	}
 }
 
-void CTeamsCore::PostSnap()
+void CTeamCore::PostSnap()
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -62,7 +62,7 @@ void CTeamsCore::PostSnap()
 	}
 }
 
-void CTeamsCore::Reset(int Team)
+void CTeamCore::Reset(int Team)
 {
 	if(Team >= 0 && Team < MAX_CLIENTS)
 		m_aTeams[Team].m_TeamWorld.m_ResetRequested = true;
@@ -70,15 +70,4 @@ void CTeamsCore::Reset(int Team)
 		for(int i = 0; i < MAX_CLIENTS; i++)
 			m_aTeams[i].m_TeamWorld.m_ResetRequested = true;
 	}
-}
-
-int CTeamsCore::GetTeamWorldID(CGameWorld *pWorld)
-{
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(pWorld == GetTeamWorld(i))
-			return i;
-	}
-	dbg_assert(false, "unreachable");
-	return -1;
 }

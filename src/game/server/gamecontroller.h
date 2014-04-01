@@ -164,8 +164,6 @@ public:
 	void OnPlayerInfoChange(class CPlayer *pPlayer);
 	void OnPlayerReadyChange(class CPlayer *pPlayer);
 
-	void OnReset(int WorldID);
-
 	// game
 	enum
 	{
