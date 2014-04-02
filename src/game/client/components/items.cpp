@@ -27,6 +27,8 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
 	if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
 		Opacity = 1.0f;
+	else if(pCurrent->m_Type == WEAPON_SHOTGUN)
+		return; //don't render other world's shotgun bullets
 
 	// get positions
 	float Curvature = 0;
@@ -113,6 +115,8 @@ void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCu
 	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
 	if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
 		Opacity = 1.0f;
+	else
+		return; //don't render other world's pickups
 
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 	Graphics()->QuadsBegin();
