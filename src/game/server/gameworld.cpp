@@ -22,6 +22,11 @@ CGameWorld::CGameWorld()
 	m_ResetRequested = false;
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		m_apFirstEntityTypes[i] = 0;
+	for(int i = 0; i < 255; i++)
+	{
+		m_aSwitchStates[i] = false;
+		m_aSwitchTicks[i] = -1;
+	}
 }
 
 CGameWorld::~CGameWorld()
@@ -118,7 +123,10 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 void CGameWorld::SetSwitchState(bool State, int GroupID, int Duration)
 {
 	m_aNextSwitchStates[GroupID] = State;
-	m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed();
+	if(Duration == -1)
+		m_aSwitchTicks[GroupID] = -1;
+	else
+		m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
 }
 
 //
@@ -168,6 +176,11 @@ void CGameWorld::Reset()
 	RemoveEntities();
 
 	m_ResetRequested = false;
+	for(int i = 0; i < 255; i++)
+	{
+		m_aSwitchStates[i] = false;
+		m_aSwitchTicks[i] = -1;
+	}
 }
 
 void CGameWorld::RemoveEntities()
@@ -214,20 +227,17 @@ void CGameWorld::Tick()
 		m_SwitchStateChanged = false;
 		for(int i = 0; i < 255; i++)
 		{
-			if(m_aSwitchTicks[i] > 0)
+			int Old = m_aSwitchStates[i];
+			m_aSwitchStates[i] = m_aNextSwitchStates[i];
+			if(m_aSwitchTicks[i] == 0)
 			{
+				m_aSwitchTicks[i] = -1;
+				m_aNextSwitchStates[i] = !m_aSwitchStates[i];
+			}
+			else if(m_aSwitchTicks[i] > 0)
 				m_aSwitchTicks[i]--;
-				if(m_aSwitchTicks[i] == 0)
-				{
-					m_aNextSwitchStates[i] = !m_aSwitchStates[i];
-					m_SwitchStateChanged = true;
-				}
-			}
-			if(m_aNextSwitchStates[i] != m_aSwitchStates[i])
-			{
-				m_aSwitchStates[i] = m_aNextSwitchStates[i];
+			if(Old != m_aSwitchStates[i])
 				m_SwitchStateChanged = true;
-			}
 		}
 	}
 	else if(GameServer()->m_pController->IsGamePaused())

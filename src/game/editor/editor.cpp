@@ -1140,8 +1140,8 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
 		TB_Bottom.VSplitLeft(30.0f, &Button, &TB_Bottom);
 		
-		static int s_SwitchDuration = 0;
-		s_SwitchDuration = UiDoValueSelector(&s_SwitchDuration, &Button, "", s_SwitchDuration, 0, 255, 1, 10.0f, "Set the switch duration (seconds). Use left mouse button to drag and change the value. Hold shift to be more precise.");
+		static int s_SwitchDuration = -1;
+		s_SwitchDuration = UiDoValueSelector(&s_SwitchDuration, &Button, "", s_SwitchDuration, -1, 254, 1, 10.0f, "Set the switch duration (seconds). Use left mouse button to drag and change the value. Hold shift to be more precise.");
 
 		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
 		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);

@@ -1518,7 +1518,7 @@ void CGameContext::OnInit()
 		{
 			int Index = pTiles[y*pTileMap->m_Width+x].m_Index;
 			int Flags = pTiles[y*pTileMap->m_Width+x].m_Flags;
-			int SwitchGroup = pTiles[y*pTileMap->m_Width+x].m_Reserved;
+			int SwitchGroup = pTiles[y*pTileMap->m_Width+x].m_Reserved - 1;
 			bool InvertSwitch = pTiles[y*pTileMap->m_Width+x].m_Flags&TILEFLAG_INVERT_SWITCH;
 			if(Index >= ENTITY_OFFSET)
 			{

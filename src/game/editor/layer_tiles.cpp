@@ -101,9 +101,9 @@ void CLayerTiles::Render(bool TileSetPicker)
 					char aBuf[64];
 					str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Index);
 					m_pEditor->Graphics()->QuadsText(x*32+10, y*32+10, 12.0f, aBuf);
-					if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+					if(m_GameLayerType == GAMELAYERTYPE_SWITCH && m_pTiles[c].m_Reserved > 0)
 					{
-						str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Reserved);
+						str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Reserved-1);
 						m_pEditor->Graphics()->QuadsText(x*32+18, y*32+22, 12.0f, aBuf);
 					}
 				}
@@ -436,7 +436,7 @@ void CLayerTiles::BrushSetSwitchDuration(int duration)
 	if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
 		for(int x = 0; x < m_Width; x++)
 			for(int y = 0; y < m_Height; y++)
-				m_pTiles[y*m_Width+x].m_Reserved = duration;
+				m_pTiles[y*m_Width+x].m_Reserved = duration + 1;
 }
 
 void CLayerTiles::BrushIncreaseSwitchDuration()

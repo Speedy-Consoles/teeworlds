@@ -523,7 +523,7 @@ void CCollision::HandleTriggerTiles(int x, int y, CTriggers *pOutTriggers)
 		pOutTriggers->m_SwitchFlags |= TRIGGERFLAG_SWITCH;
 		pOutTriggers->m_SwitchState = m_apTiles[GAMELAYERTYPE_SWITCH][Index].m_Flags&TILEFLAG_SWITCH_ON;
 		pOutTriggers->m_SwitchGroup = m_apTiles[GAMELAYERTYPE_SWITCH][Index].m_Index - 1;
-		pOutTriggers->m_SwitchDuration = m_apTiles[GAMELAYERTYPE_SWITCH][Index].m_Reserved;
+		pOutTriggers->m_SwitchDuration = m_apTiles[GAMELAYERTYPE_SWITCH][Index].m_Reserved - 1;
 	}
 
 	Index = GetPosIndex(x, y, GAMELAYERTYPE_RACE);
