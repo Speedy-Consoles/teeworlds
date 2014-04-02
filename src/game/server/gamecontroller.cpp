@@ -283,7 +283,7 @@ bool IGameController::OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, 
 		else
 			Dir.y = Flags&TILEFLAG_VFLIP ? 1.0 : -1.0;
 		for(int i = 0; i < MAX_CLIENTS; i++)
-			new CProjectile(GameServer()->m_TeamCore.GetTeamWorld(i), WEAPON_SHOTGUN, -1, Pos, Dir, 0,0, false, 0, SOUND_GUN_FIRE, WEAPON_SHOTGUN, SwitchGroup, InvertSwitch, false);
+			new CProjectile(GameServer()->GetWorld(i), WEAPON_SHOTGUN, -1, Pos, Dir, 0,0, false, 0, SOUND_GUN_FIRE, WEAPON_SHOTGUN, SwitchGroup, InvertSwitch, false);
 		break;
 	}
 
@@ -291,7 +291,7 @@ bool IGameController::OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, 
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			CPickup *pPickup = new CPickup(GameServer()->m_TeamCore.GetTeamWorld(i), Type, SwitchGroup, InvertSwitch);
+			CPickup *pPickup = new CPickup(GameServer()->GetWorld(i), Type, SwitchGroup, InvertSwitch);
 			pPickup->m_Pos = Pos;
 		}
 		return true;
@@ -419,7 +419,8 @@ void IGameController::DoWincheckMatch()
 void IGameController::ResetGame()
 {
 	// reset the game
-	GameServer()->m_TeamCore.Reset(-1);
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		GameServer()->GetWorld(i)->m_ResetRequested = true;
 	
 	SetGameState(IGS_GAME_RUNNING);
 	m_GameStartTick = Server()->Tick();
@@ -513,7 +514,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 		{
 			m_GameState = GameState;
 			m_GameStateTimer = 3*Server()->TickSpeed();
-			GameServer()->m_TeamCore.GetTeamWorld(0)->m_Paused = true;
+			GameServer()->GetWorld(0)->m_Paused = true;
 		}
 		break;
 	case IGS_GAME_RUNNING:
@@ -522,7 +523,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 			m_GameState = GameState;
 			m_GameStateTimer = TIMER_INFINITE;
 			SetPlayersReadyState(true);
-			GameServer()->m_TeamCore.GetTeamWorld(0)->m_Paused = false;
+			GameServer()->GetWorld(0)->m_Paused = false;
 		}
 		break;
 	case IGS_GAME_PAUSED:
@@ -545,7 +546,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				}
 
 				m_GameState = GameState;
-				GameServer()->m_TeamCore.GetTeamWorld(0)->m_Paused = true;
+				GameServer()->GetWorld(0)->m_Paused = true;
 			}
 			else
 			{
@@ -562,7 +563,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 			m_GameState = GameState;
 			m_GameStateTimer = Timer*Server()->TickSpeed();
 			m_SuddenDeath = 0;
-			GameServer()->m_TeamCore.GetTeamWorld(0)->m_Paused = true;
+			GameServer()->GetWorld(0)->m_Paused = true;
 		}
 	}
 }
@@ -790,7 +791,7 @@ bool IGameController::IsPlayerReadyMode() const
 
 bool IGameController::IsTeamChangeAllowed() const
 {
-	return !GameServer()->m_TeamCore.GetTeamWorld(0)->m_Paused || (m_GameState == IGS_START_COUNTDOWN && m_GameStartTick == Server()->Tick());
+	return !GameServer()->GetWorld(0)->m_Paused || (m_GameState == IGS_START_COUNTDOWN && m_GameStartTick == Server()->Tick());
 }
 
 void IGameController::UpdateGameInfo(int ClientID)
@@ -905,7 +906,7 @@ void IGameController::CycleMap()
 bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int WorldID) const
 {
 	// spectators can't spawn
-	if(Team == TEAM_SPECTATORS || GameServer()->m_TeamCore.GetTeamWorld(WorldID)->m_Paused || GameServer()->m_TeamCore.GetTeamWorld(WorldID)->m_ResetRequested)
+	if(Team == TEAM_SPECTATORS || GameServer()->GetWorld(WorldID)->m_Paused || GameServer()->GetWorld(WorldID)->m_ResetRequested)
 		return false;
 
 	CSpawnEval Eval;
@@ -937,7 +938,7 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int WorldID) const
 float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int WorldID) const
 {
 	float Score = 0.0f;
-	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_TeamCore.GetTeamWorld(WorldID)->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+	CCharacter *pC = static_cast<CCharacter *>(GameServer()->GetWorld(WorldID)->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for(; pC; pC = (CCharacter *)pC->TypeNext())
 	{
 		// team mates are not as dangerous as enemies
@@ -959,14 +960,14 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int WorldID
 	{
 		// check if the position is occupado
 		CCharacter *aEnts[MAX_CLIENTS];
-		int Num = GameServer()->m_TeamCore.GetTeamWorld(WorldID)->FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GameServer()->GetWorld(WorldID)->FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 		vec2 Positions[5] = { vec2(0.0f, 0.0f), vec2(-32.0f, 0.0f), vec2(0.0f, -32.0f), vec2(32.0f, 0.0f), vec2(0.0f, 32.0f) };	// start, left, up, right, down
 		int Result = -1;
 		for(int Index = 0; Index < 5 && Result == -1; ++Index)
 		{
 			Result = Index;
 			for(int c = 0; c < Num; ++c)
-				if(GameServer()->GetCollision(WorldID)->GetCollisionAt(m_aaSpawnPoints[Type][i]+Positions[Index]) ||
+				if(GameServer()->GetWorld(WorldID)->Collision()->GetCollisionAt(m_aaSpawnPoints[Type][i]+Positions[Index]) ||
 					distance(aEnts[c]->m_Pos, m_aaSpawnPoints[Type][i]+Positions[Index]) <= aEnts[c]->m_ProximityRadius)
 				{
 					Result = -1;

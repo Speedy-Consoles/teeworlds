@@ -204,7 +204,7 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
-	if(GameServer()->m_TeamCore.GetTeamWorld(m_WorldID)->m_Paused)
+	if(GameServer()->GetWorld(m_WorldID)->m_Paused)
 	{
 		m_PlayerFlags = NewInput->m_PlayerFlags;
 		return;
@@ -375,7 +375,7 @@ void CPlayer::TryRespawn()
 		return;
 
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientID) CCharacter(GameServer()->m_TeamCore.GetTeamWorld(m_WorldID));
+	m_pCharacter = new(m_ClientID) CCharacter(GameServer()->GetWorld(m_WorldID));
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(GameServer()->m_TeamCore.GetTeamEvents(m_WorldID), SpawnPos);
+	GameServer()->CreatePlayerSpawn(GameServer()->GetWorld(m_WorldID)->Events(), SpawnPos);
 }

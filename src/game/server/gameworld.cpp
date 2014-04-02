@@ -6,6 +6,7 @@
 #include "gamecontext.h"
 #include "gamecontroller.h"
 #include "gameworld.h"
+#include "eventhandler.h"
 
 
 //////////////////////////////////////////////////
@@ -15,8 +16,6 @@ CGameWorld::CGameWorld()
 {
 	m_pGameServer = 0x0;
 	m_pServer = 0x0;
-	m_pCollision = 0;
-	m_pEvents = 0;
 
 	m_Paused = false;
 	m_ResetRequested = false;
@@ -40,16 +39,8 @@ CGameWorld::~CGameWorld()
 void CGameWorld::SetGameServer(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
+	m_Events.SetGameServer(pGameServer);
 	m_pServer = m_pGameServer->Server();
-}
-
-void CGameWorld::SetCollision(CCollision *pCollision)
-{
-	m_pCollision = pCollision;
-}
-void CGameWorld::SetEvents(CEventHandler *pEvents)
-{
-	m_pEvents = pEvents;
 }
 
 CEntity *CGameWorld::FindFirst(int Type)
@@ -147,6 +138,8 @@ void CGameWorld::Snap(int SnappingClient, int WorldID)
 		for(int i = 0; i < 255; i++)
 			pSwitchStates->m_aStates[i/8] |= m_aSwitchStates[i] << (i % 8);
 	}
+
+	m_Events.Snap(SnappingClient, WorldID);
 }
 
 void CGameWorld::PostSnap()
@@ -158,6 +151,7 @@ void CGameWorld::PostSnap()
 			pEnt->PostSnap();
 			pEnt = m_pNextTraverseEntity;
 		}
+	m_Events.Clear();
 }
 
 void CGameWorld::Reset()

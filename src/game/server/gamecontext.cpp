@@ -103,7 +103,7 @@ void CGameContext::ResetPlayers(CGameWorld *pWorld)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(m_apPlayers[i] && m_TeamCore.GetTeamWorld(m_apPlayers[i]->WorldID()) == pWorld)
+		if(m_apPlayers[i] && &m_aWorlds[m_apPlayers[i]->WorldID()] == pWorld)
 		{
 			m_apPlayers[i]->m_RespawnDisabled = false;
 			m_apPlayers[i]->Respawn();
@@ -499,11 +499,10 @@ void CGameContext::OnTick()
 
 	// copy tuning
 	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		m_TeamCore.GetTeamWorld(i)->m_Core.m_Tuning = m_Tuning;
-	}
+		m_aWorlds[i].m_Core.m_Tuning = m_Tuning;
 
-	m_TeamCore.Tick();
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		m_aWorlds[i].Tick();
 
 	//if(world.paused) // make sure that the game object always updates
 	m_pController->Tick();
@@ -616,7 +615,7 @@ void CGameContext::OnClientDirectInput(int ClientID, void *pInput)
 
 void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 {
-	if(!m_TeamCore.GetTeamWorld(m_apPlayers[ClientID]->WorldID())->m_Paused)
+	if(!m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 	{
 		int NumCorrections = m_NetObjHandler.NumObjCorrections();
 		if(m_NetObjHandler.ValidateObj(NETOBJTYPE_PLAYERINPUT, pInput, sizeof(CNetObj_PlayerInput)) == 0)
@@ -958,7 +957,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
 			}
 		}
-		else if (MsgID == NETMSGTYPE_CL_SETSPECTATORMODE && !m_TeamCore.GetTeamWorld(m_apPlayers[ClientID]->WorldID())->m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_SETSPECTATORMODE && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 		{
 			CNetMsg_Cl_SetSpectatorMode *pMsg = (CNetMsg_Cl_SetSpectatorMode *)pRawMsg;
 
@@ -969,7 +968,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(!pPlayer->SetSpectatorID(pMsg->m_SpectatorID))
 				SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 		}
-		else if (MsgID == NETMSGTYPE_CL_EMOTICON && !m_TeamCore.GetTeamWorld(m_apPlayers[ClientID]->WorldID())->m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_EMOTICON && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 		{
 			CNetMsg_Cl_Emoticon *pMsg = (CNetMsg_Cl_Emoticon *)pRawMsg;
 
@@ -982,7 +981,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			ExtendEmoticon(ClientID, pMsg->m_Emoticon);
 		}
-		else if (MsgID == NETMSGTYPE_CL_KILL && !m_TeamCore.GetTeamWorld(m_apPlayers[ClientID]->WorldID())->m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_KILL && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 		{
 			if(pPlayer->m_LastKill && pPlayer->m_LastKill+Server()->TickSpeed()*3 > Server()->Tick())
 				return;
@@ -1487,13 +1486,16 @@ void CGameContext::OnInit()
 	// init everything
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
-	m_TeamCore.SetGameServer(this);
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		m_aWorlds[i].SetGameServer(this);
 
 	for(int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
 	m_Layers.Init(Kernel());
-	m_TeamCore.InitCollision(&m_Layers);
+	m_aWorlds[0].InitCollision(&m_Layers);
+	for(int i = 1; i < MAX_CLIENTS; i++)
+		m_aWorlds[i].InitCollision(m_aWorlds[0].Collision());
 
 	// select gametype
 	if(str_comp_nocase(g_Config.m_SvGametype, "mod") == 0)
@@ -1557,7 +1559,8 @@ void CGameContext::OnSnap(int ClientID)
 		mem_copy(pTuneParams->m_aTuneParams, &m_Tuning, sizeof(pTuneParams->m_aTuneParams));
 	}
 
-	m_TeamCore.Snap(ClientID);
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		m_aWorlds[i].Snap(ClientID, i);
 	m_pController->Snap(ClientID);
 
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -1569,7 +1572,8 @@ void CGameContext::OnSnap(int ClientID)
 void CGameContext::OnPreSnap() {}
 void CGameContext::OnPostSnap()
 {
-	m_TeamCore.PostSnap();
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		m_aWorlds[i].PostSnap();
 }
 
 bool CGameContext::IsClientReady(int ClientID)

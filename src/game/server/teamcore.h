@@ -17,8 +17,7 @@ enum
 
 struct CTeam
 {
-	CGameWorld m_TeamWorld;
-	CCollision m_Collision;
+	CGameWorld *m_pTeamWorld;
 	CEventHandler m_Events;
 	int m_State;
 	int m_Mode;

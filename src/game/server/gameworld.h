@@ -4,6 +4,7 @@
 #define GAME_SERVER_GAMEWORLD_H
 
 #include <game/gamecore.h>
+#include "eventhandler.h"
 
 class CEntity;
 class CCharacter;
@@ -34,15 +35,15 @@ private:
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
 	class CGameContext *m_pGameServer;
-	class CCollision *m_pCollision;
-	class CEventHandler *m_pEvents;
+	class CCollision m_Collision;
+	class CEventHandler m_Events;
 
 	class IServer *m_pServer;
 
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
-	class CCollision *Collision() { return m_pCollision; }
-	class CEventHandler *Events() { return m_pEvents; }
+	class CCollision *Collision() { return &m_Collision; }
+	class CEventHandler *Events() { return &m_Events; }
 	class IServer *Server() { return m_pServer; }
 
 	bool m_ResetRequested;
@@ -58,9 +59,10 @@ public:
 	CGameWorld();
 	~CGameWorld();
 
+	void InitCollision(class CLayers *pLayers) { m_Collision.Init(pLayers, m_aSwitchStates); }
+	void InitCollision(class CCollision *pOther) { m_Collision.Init(pOther, m_aSwitchStates); }
+
 	void SetGameServer(CGameContext *pGameServer);
-	void SetCollision(CCollision *pCollision);
-	void SetEvents(CEventHandler *pEvents);
 
 	CEntity *FindFirst(int Type);
 

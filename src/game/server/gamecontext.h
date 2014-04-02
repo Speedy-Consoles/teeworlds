@@ -11,7 +11,6 @@
 
 #include "eventhandler.h"
 #include "gameworld.h"
-#include "teamcore.h"
 
 /*
 	Tick
@@ -69,11 +68,31 @@ class CGameContext : public IGameServer
 	void ExtendEmoticon(int ClientID, int Emoticon);
 
 	bool m_Resetting;
+
+	enum
+	{
+		TEAMSTATE_OPEN = 0,
+		TEAMSTATE_LOCKED,
+		TEAMSTATE_FULL,
+		TEAMSTATE_STARTED,
+		TEAMSTATE_FINISHED,
+		TEAMMODE_OPEN,
+		TEAMMODE_PRIVATE
+	};
+
+	struct CTeam
+	{
+		int m_State;
+		int m_Mode;
+	};
+
+	CGameWorld m_aWorlds[MAX_CLIENTS];
+	CTeam m_aTeams[MAX_CLIENTS];
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
-	CCollision *GetCollision(int WorldID) { return m_TeamCore.GetTeamCollision(WorldID); }
 	CTuningParams *Tuning() { return &m_Tuning; }
+	CGameWorld *GetWorld(int WorldID) { return &m_aWorlds[WorldID]; }
 
 	CGameContext();
 	~CGameContext();
@@ -83,8 +102,6 @@ public:
 	class CPlayer *m_apPlayers[MAX_CLIENTS];
 
 	class IGameController *m_pController;
-	//CGameWorld m_World;
-	CTeamCore m_TeamCore;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
