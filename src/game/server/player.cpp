@@ -128,7 +128,7 @@ void CPlayer::Snap(int SnappingClient)
 	pPlayerInfo->m_PlayerFlags = m_PlayerFlags&PLAYERFLAG_CHATTING;
 	if(Server()->IsAuthed(m_ClientID))
 		pPlayerInfo->m_PlayerFlags |= PLAYERFLAG_ADMIN;
-	if(!GetCharacter()->IsAlive())
+	if(!GetCharacter() || !GetCharacter()->IsAlive())
 		pPlayerInfo->m_PlayerFlags |= PLAYERFLAG_DEAD;
 	if(SnappingClient != -1 && m_Team == TEAM_SPECTATORS && SnappingClient == m_SpectatorID)
 		pPlayerInfo->m_PlayerFlags |= PLAYERFLAG_WATCHING;
