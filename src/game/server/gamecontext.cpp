@@ -438,8 +438,24 @@ void CGameContext::AbortVoteOnTeamChange(int ClientID)
 		m_VoteCloseTime = -1;
 }
 
+void CGameContext::CheckPureTuning()
+{
+	// might not be created yet during start up
+	if(!m_pController)
+		return;
+
+	CTuningParams p;
+	if(mem_comp(&p, &m_Tuning, sizeof(p)) != 0)
+	{
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "resetting tuning due to pure server");
+		m_Tuning = p;
+	}
+}
+
 void CGameContext::SendTuningParams(int ClientID)
 {
+	CheckPureTuning();
+
 	CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
 	int *pParams = (int *)&m_Tuning;
 	for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)

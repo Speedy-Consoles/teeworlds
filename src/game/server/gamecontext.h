@@ -172,6 +172,7 @@ public:
 	void SendGameMsg(int GameMsgID, int ParaI1, int ParaI2, int ParaI3, int ClientID);
 
 	//
+	void CheckPureTuning();
 	void SendTuningParams(int ClientID);
 
 	//
