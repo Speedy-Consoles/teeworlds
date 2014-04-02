@@ -15,7 +15,7 @@
 /*
 	Tick
 		Game Context (CGameContext::tick)
-			Game World (GAMEWORLD::tick)
+			All Game Worlds (GAMEWORLD::tick)
 				Reset world if requested (GAMEWORLD::reset)
 				All entities in the world (ENTITY::tick)
 				All entities in the world (ENTITY::tick_defered)
@@ -26,10 +26,10 @@
 
 	Snap
 		Game Context (CGameContext::snap)
-			Game World (GAMEWORLD::snap)
+			All Game Worlds (GAMEWORLD::snap)
 				All entities in the world (ENTITY::snap)
+				Events handler (EVENT_HANDLER::snap)
 			Game Controller (GAMECONTROLLER::snap)
-			Events handler (EVENT_HANDLER::snap)
 			All players (CPlayer::snap)
 
 */
@@ -52,8 +52,6 @@ class CGameContext : public IGameServer
 	static void ConSetTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConSetTeamAll(IConsole::IResult *pResult, void *pUserData);
 	static void ConSwapTeams(IConsole::IResult *pResult, void *pUserData);
-	static void ConShuffleTeams(IConsole::IResult *pResult, void *pUserData);
-	static void ConLockTeams(IConsole::IResult *pResult, void *pUserData);
 	static void ConForceTeamBalance(IConsole::IResult *pResult, void *pUserData);
 	static void ConAddVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConRemoveVote(IConsole::IResult *pResult, void *pUserData);
@@ -101,7 +99,7 @@ public:
 
 	class CPlayer *m_apPlayers[MAX_CLIENTS];
 
-	class IGameController *m_pController;
+	class CGameController *m_pController;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
@@ -174,7 +172,6 @@ public:
 	void SendGameMsg(int GameMsgID, int ParaI1, int ParaI2, int ParaI3, int ClientID);
 
 	//
-	void CheckPureTuning();
 	void SendTuningParams(int ClientID);
 
 	//

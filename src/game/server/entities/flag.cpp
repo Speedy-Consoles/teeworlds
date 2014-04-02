@@ -8,7 +8,6 @@
 CFlag::CFlag(CGameWorld *pGameWorld, int Team)
 : CEntity(pGameWorld, CGameWorld::ENTTYPE_FLAG, 0, false)
 {
-	m_Team = Team;
 	m_ProximityRadius = ms_PhysSize;
 	m_pCarryingCharacter = NULL;
 	m_GrabTick = 0;
@@ -37,12 +36,12 @@ void CFlag::Snap(int SnappingClient, int World)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, m_Team, sizeof(CNetObj_Flag));
+	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, 0, sizeof(CNetObj_Flag));
 	if(!pFlag)
 		return;
 
 	pFlag->m_X = (int)m_Pos.x;
 	pFlag->m_Y = (int)m_Pos.y;
-	pFlag->m_Team = m_Team;
+	pFlag->m_Team = 0;
 	pFlag->m_World = World;
 }
