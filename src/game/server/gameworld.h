@@ -48,7 +48,7 @@ private:
 
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
-	class CCollision *Collision();
+	class CCollision *Collision() { return &m_Collision; }
 	class CEventHandler *Events() { return &m_Events; }
 	class IServer *Server() { return m_pServer; }
 

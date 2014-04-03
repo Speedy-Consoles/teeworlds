@@ -89,6 +89,7 @@ public:
 	CCollision();
 	void Init(class CLayers *pLayers, bool *pSwitchStates);
 	void Init(class CCollision *pOther, bool *pSwitchStates);
+	void SetSwitches(bool *pSwitchStates) { m_pSwitchStates = pSwitchStates; }
 	int GetNumCheckpoints();
 	int GetDirFlagsAt(float x, float y);
 	int GetCollisionAt(float x, float y);

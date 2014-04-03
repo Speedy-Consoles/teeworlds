@@ -41,14 +41,6 @@ CGameWorld::~CGameWorld()
 			delete m_apFirstEntityTypes[i];
 }
 
-CCollision *CGameWorld::Collision()
-{
-	if(m_pMirrorWorld)
-		return m_pMirrorWorld->Collision();
-	else
-		return &m_Collision;
-}
-
 void CGameWorld::SetGameServer(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
@@ -59,6 +51,15 @@ void CGameWorld::SetGameServer(CGameContext *pGameServer)
 void CGameWorld::SetMirrorWorld(CGameWorld *pMirrorWorld)
 {
 	m_pMirrorWorld = pMirrorWorld;
+	m_SwitchStatesChanged = true;
+	if(pMirrorWorld == 0)
+	{
+		m_Collision.SetSwitches(m_aSwitchStates);
+		return;
+	}
+
+	m_Collision.SetSwitches(pMirrorWorld->m_aSwitchStates);
+
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 	{
 		if(i == ENTTYPE_CHARACTER)
