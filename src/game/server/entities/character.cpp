@@ -813,9 +813,6 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	if(Weapon == WEAPON_LASER || Weapon == WEAPON_HAMMER)
 		Unfreeze();
 
-	if(GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From))
-		return false;
-
 	// m_pPlayer only inflicts half damage on self
 	if(From == m_pPlayer->GetCID() && Dmg)
 		Dmg = max(1, Dmg/2);
@@ -867,7 +864,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 		int Mask = CmaskOne(From);
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
-			if(GameServer()->m_apPlayers[i] && (GameServer()->m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS ||  GameServer()->m_apPlayers[i]->m_DeadSpecMode) &&
+			if(GameServer()->m_apPlayers[i] && (GameServer()->m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS) &&
 				GameServer()->m_apPlayers[i]->GetSpectatorID() == From)
 				Mask |= CmaskOne(i);
 		}

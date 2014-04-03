@@ -58,14 +58,8 @@ public:
 	// used for spectator mode
 	int GetSpectatorID() const { return m_SpectatorID; }
 	bool SetSpectatorID(int SpectatorID);
-	bool m_DeadSpecMode;
-	bool DeadCanFollow(CPlayer *pPlayer) const;
-	void UpdateDeadSpecMode();
 
 	bool m_IsReadyToEnter;
-	bool m_IsReadyToPlay;
-
-	bool m_RespawnDisabled;
 
 	//
 	int m_Vote;
@@ -79,7 +73,6 @@ public:
 	int m_LastChangeInfo;
 	int m_LastEmote;
 	int m_LastKill;
-	int m_LastReadyChange;
 
 	// TODO: clean this up
 	struct
