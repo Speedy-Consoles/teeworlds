@@ -641,7 +641,7 @@ void CCharacter::TickDefered()
 		m_Core.Write(&Current);
 
 		// only allow dead reackoning for a top of 3 seconds
-		if(m_ReckoningTick+Server()->TickSpeed()*3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0 || GameWorld()->m_SwitchStateChanged)
+		if(m_ReckoningTick+Server()->TickSpeed()*3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0 || GameWorld()->SwitchStatesChanged())
 		{
 			m_ReckoningTick = Server()->Tick();
 			m_SendCore = m_Core;

@@ -23,8 +23,6 @@ class CEntity
 	CEntity *m_pNextTypeEntity;
 
 	class CGameWorld *m_pGameWorld;
-	class CEventHandler *m_pEvents;
-
 protected:
 	bool m_MarkedForDestroy;
 	int m_ID;

@@ -7,6 +7,10 @@
 #include "gamecontroller.h"
 #include "gameworld.h"
 #include "eventhandler.h"
+#include "entities/projectile.h"
+#include "entities/pickup.h"
+#include "entities/laser.h"
+#include "entities/flag.h"
 
 
 //////////////////////////////////////////////////
@@ -21,6 +25,7 @@ CGameWorld::CGameWorld()
 	m_ResetRequested = false;
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		m_apFirstEntityTypes[i] = 0;
+	m_pMirrorWorld = 0;
 	for(int i = 0; i < 255; i++)
 	{
 		m_aSwitchStates[i] = false;
@@ -36,11 +41,57 @@ CGameWorld::~CGameWorld()
 			delete m_apFirstEntityTypes[i];
 }
 
+CCollision *CGameWorld::Collision()
+{
+	if(m_pMirrorWorld)
+		return m_pMirrorWorld->Collision();
+	else
+		return &m_Collision;
+}
+
 void CGameWorld::SetGameServer(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	m_Events.SetGameServer(pGameServer);
 	m_pServer = m_pGameServer->Server();
+}
+
+void CGameWorld::SetMirrorWorld(CGameWorld *pMirrorWorld)
+{
+	m_pMirrorWorld = pMirrorWorld;
+	for(int i = 0; i < NUM_ENTTYPES; i++)
+	{
+		if(i == ENTTYPE_CHARACTER)
+			continue;
+		for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
+		{
+			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+			RemoveEntity(pEnt);
+			pEnt->Destroy();
+			pEnt = m_pNextTraverseEntity;
+		}
+	}
+	for(int i = 0; i < NUM_ENTTYPES; i++)
+	{
+		if(i == ENTTYPE_CHARACTER)
+			continue;
+		for(CEntity *pEnt = pMirrorWorld->m_apFirstEntityTypes[i]; pEnt; )
+		{
+			CEntity *pNewEnt = 0;
+			switch(pEnt->m_ObjType)
+			{
+				case ENTTYPE_PROJECTILE:
+					pNewEnt = new CProjectile(*((CProjectile *) pEnt));
+				case ENTTYPE_LASER:
+					pNewEnt = new CLaser(*((CLaser *) pEnt));
+				case ENTTYPE_PICKUP:
+					pNewEnt = new CPickup(*((CPickup *) pEnt));
+				case ENTTYPE_FLAG:
+					pNewEnt = new CFlag(*((CFlag *) pEnt));
+			}
+			InsertEntity(pNewEnt);
+		}
+	}
 }
 
 CEntity *CGameWorld::FindFirst(int Type)
@@ -113,11 +164,32 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 
 void CGameWorld::SetSwitchState(bool State, int GroupID, int Duration)
 {
-	m_aNextSwitchStates[GroupID] = State;
-	if(Duration == -1)
-		m_aSwitchTicks[GroupID] = -1;
+	if(m_pMirrorWorld)
+		m_pMirrorWorld->SetSwitchState(State, GroupID, Duration);
 	else
-		m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
+	{
+		m_aNextSwitchStates[GroupID] = State;
+		if(Duration == -1)
+			m_aSwitchTicks[GroupID] = -1;
+		else
+			m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
+	}
+}
+
+bool CGameWorld::GetSwitchState(int GroupID)
+{
+	if(m_pMirrorWorld)
+		return m_pMirrorWorld->GetSwitchState(GroupID);
+	else
+		return m_aSwitchStates[GroupID];
+}
+
+bool CGameWorld::SwitchStatesChanged()
+{
+	if(m_pMirrorWorld)
+		return m_pMirrorWorld->SwitchStatesChanged();
+	else
+		return m_SwitchStatesChanged;
 }
 
 //
@@ -136,7 +208,7 @@ void CGameWorld::Snap(int SnappingClient, int WorldID)
 	if(pSwitchStates)
 	{
 		for(int i = 0; i < 255; i++)
-			pSwitchStates->m_aStates[i/8] |= m_aSwitchStates[i] << (i % 8);
+			pSwitchStates->m_aStates[i/8] |= GetSwitchState(i) << (i % 8);
 	}
 
 	m_Events.Snap(SnappingClient, WorldID);
@@ -156,6 +228,8 @@ void CGameWorld::PostSnap()
 
 void CGameWorld::Reset(bool Soft)
 {
+	m_pMirrorWorld = 0;
+
 	// reset all entities
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
@@ -222,7 +296,7 @@ void CGameWorld::Tick()
 			}
 			
 		// update switch states
-		m_SwitchStateChanged = false;
+		m_SwitchStatesChanged = false;
 		for(int i = 0; i < 255; i++)
 		{
 			int Old = m_aSwitchStates[i];
@@ -235,7 +309,7 @@ void CGameWorld::Tick()
 			else if(m_aSwitchTicks[i] > 0)
 				m_aSwitchTicks[i]--;
 			if(Old != m_aSwitchStates[i])
-				m_SwitchStateChanged = true;
+				m_SwitchStatesChanged = true;
 		}
 	}
 	else if(GameServer()->m_pController->IsGamePaused())

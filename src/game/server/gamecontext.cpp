@@ -1398,6 +1398,9 @@ void CGameContext::OnInit()
 	for(int i = 1; i < MAX_CLIENTS; i++)
 		m_aWorlds[i].InitCollision(m_aWorlds[0].Collision());
 
+	for(int i = 1; i < MAX_CLIENTS; i++)
+		m_aWorlds[i].SetMirrorWorld(&m_aWorlds[0]);
+
 	m_pController = new CGameController(this);
 
 	// create all entities from the game layer

@@ -34,15 +34,21 @@ private:
 	CEntity *m_pNextTraverseEntity;
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
+	bool m_aNextSwitchStates[255];
+	bool m_aSwitchStates[255];
+	int m_aSwitchTicks[255];
+	bool m_SwitchStatesChanged;
+
 	class CGameContext *m_pGameServer;
 	class CCollision m_Collision;
 	class CEventHandler m_Events;
+	CGameWorld *m_pMirrorWorld;
 
 	class IServer *m_pServer;
 
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
-	class CCollision *Collision() { return &m_Collision; }
+	class CCollision *Collision();
 	class CEventHandler *Events() { return &m_Events; }
 	class IServer *Server() { return m_pServer; }
 
@@ -50,12 +56,11 @@ public:
 	bool m_SoftResetRequested;
 	bool m_Paused;
 	CWorldCore m_Core;
-	bool m_aNextSwitchStates[255];
-	bool m_aSwitchStates[255];
-	int m_aSwitchTicks[255];
-	bool m_SwitchStateChanged;
 
+	void SetMirrorWorld(CGameWorld *pMirrorWorld);
 	void SetSwitchState(bool State, int GroupID, int Duration);
+	bool GetSwitchState(int GroupID);
+	bool SwitchStatesChanged();
 
 	CGameWorld();
 	~CGameWorld();
