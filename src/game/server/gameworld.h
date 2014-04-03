@@ -28,7 +28,7 @@ public:
 	};
 
 private:
-	void Reset();
+	void Reset(bool Soft);
 	void RemoveEntities();
 
 	CEntity *m_pNextTraverseEntity;
@@ -47,6 +47,7 @@ public:
 	class IServer *Server() { return m_pServer; }
 
 	bool m_ResetRequested;
+	bool m_SoftResetRequested;
 	bool m_Paused;
 	CWorldCore m_Core;
 	bool m_aNextSwitchStates[255];

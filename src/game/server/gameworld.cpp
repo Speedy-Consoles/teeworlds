@@ -154,27 +154,29 @@ void CGameWorld::PostSnap()
 	m_Events.Clear();
 }
 
-void CGameWorld::Reset()
+void CGameWorld::Reset(bool Soft)
 {
 	// reset all entities
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
 		{
 			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
-			pEnt->Reset();
+			if(!Soft || pEnt->m_ObjType != CGameWorld::ENTTYPE_CHARACTER)
+				pEnt->Reset();
 			pEnt = m_pNextTraverseEntity;
 		}
 	RemoveEntities();
 
 	GameServer()->ResetPlayers(this);
-	RemoveEntities();
 
-	m_ResetRequested = false;
 	for(int i = 0; i < 255; i++)
 	{
 		m_aSwitchStates[i] = false;
 		m_aSwitchTicks[i] = -1;
 	}
+
+	m_ResetRequested = false;
+	m_SoftResetRequested = false;
 }
 
 void CGameWorld::RemoveEntities()
@@ -196,7 +198,9 @@ void CGameWorld::RemoveEntities()
 void CGameWorld::Tick()
 {
 	if(m_ResetRequested)
-		Reset();
+		Reset(false);
+	else if(m_SoftResetRequested)
+		Reset(true);
 
 	if(!m_Paused)
 	{
