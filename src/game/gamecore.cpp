@@ -409,12 +409,18 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
 	vec2 NewPos = m_Pos;
 
 	int Size = m_pCollision->MoveBox(&NewPos, &m_Vel, pOutTriggers, vec2(28.0f, 28.0f), 0);
+	bool Teleport = false;
 	for(int i = 0; i < Size; i++)
+	{
 		HandleTriggers(pOutTriggers[i]);
+		// dirty fix for dirty code
+		if(pOutTriggers[i]->m_TeleFlags = CCollision::TRIGGERFLAGS_TELEPORT;
+			Teleport = true;
+	}
 
 	m_Vel.x = m_Vel.x*(1.0f/RampValue);
 
-	if(m_pWorld && m_pWorld->m_Tuning.m_PlayerCollision)
+	if(m_pWorld && m_pWorld->m_Tuning.m_PlayerCollision && !Teleport)
 	{
 		// check player collision
 		float Distance = distance(m_Pos, NewPos);
