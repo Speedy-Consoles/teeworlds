@@ -17,6 +17,8 @@ public:
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient, int World);
 
+	static bool HitCharacter(CCharacter *pCharacter, void *pUserData);
+
 private:
 	vec2 m_Direction;
 	vec2 m_StartPos;

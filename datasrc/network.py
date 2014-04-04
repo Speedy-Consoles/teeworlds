@@ -157,6 +157,8 @@ Objects = [
 		NetIntRange("m_HookState", -1, 5),
 		NetTick("m_HookTick"),
 		NetTick("m_FreezeTick"),
+		
+		NetIntAny("m_Flags"),
 
 		NetIntAny("m_HookX"),
 		NetIntAny("m_HookY"),

@@ -15,6 +15,8 @@ public:
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient, int World);
 
+	static bool HitCharacter(CCharacter *pCharacter, void *pUserData);
+
 protected:
 	bool HitCharacter(vec2 From, vec2 To);
 	void DoBounce();
