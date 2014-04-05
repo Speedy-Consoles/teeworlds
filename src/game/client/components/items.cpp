@@ -24,11 +24,23 @@ void CItems::OnReset()
 
 void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 {
-	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
+	float Opacity;
+	bool Solo = false;
+	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+	{
+		if(pCurrent->m_Type == WEAPON_SHOTGUN)
+			return; //don't render other world's shotgun bullets
+		else
+			Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	}
+	else if(m_pClient->m_LocalClientID != pCurrent->m_SoloClientID
+			&& (m_pClient->m_PredictedChar.m_Solo || pCurrent->m_SoloClientID != -1))
+	{
+		Solo = true;
+		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+	}
+	else
 		Opacity = 1.0f;
-	else if(pCurrent->m_Type == WEAPON_SHOTGUN)
-		return; //don't render other world's shotgun bullets
 
 	// get positions
 	float Curvature = 0;
@@ -74,7 +86,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	// add particle for this projectile
 	if(pCurrent->m_Type == WEAPON_GRENADE)
 	{
-		m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, pCurrent->m_World);
+		m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, pCurrent->m_World, Solo);
 		static float s_Time = 0.0f;
 		static float s_LastLocalTime = Client()->LocalTime();
 
@@ -95,7 +107,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	}
 	else
 	{
-		m_pClient->m_pEffects->BulletTrail(Pos, pCurrent->m_World);
+		m_pClient->m_pEffects->BulletTrail(Pos, pCurrent->m_World, Solo);
 
 		if(length(Vel) > 0.00001f)
 			Graphics()->QuadsSetRotation(angle(Vel));
@@ -112,10 +124,8 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 
 void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCurrent)
 {
-	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
-		Opacity = 1.0f;
-	else
+	float Opacity = 1.0f;
+	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
 		return; //don't render other world's pickups
 
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
@@ -146,8 +156,7 @@ void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCu
 		Size = g_pData->m_Weapons.m_aId[WEAPON_LASER].m_VisualSize;
 		break;
 	case PICKUP_NINJA:
-		if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
-			m_pClient->m_pEffects->PowerupShine(Pos, vec2(96,18));
+		m_pClient->m_pEffects->PowerupShine(Pos, vec2(96,18));
 		Size *= 2.0f;
 		Pos.x -= 10.0f;
 	}
@@ -181,8 +190,10 @@ void CItems::RenderFlag(const CNetObj_Flag *pPrev, const CNetObj_Flag *pCurrent,
 	float Angle = 0.0f;
 	float Size = 42.0f;
 
-	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
+	float Opacity;
+	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	else
 		Opacity = 1.0f;
 
 	Graphics()->BlendNormal();
@@ -226,8 +237,13 @@ void CItems::RenderLaser(const struct CNetObj_Laser *pCurrent)
 	vec2 From = vec2(pCurrent->m_FromX, pCurrent->m_FromY);
 	vec2 Dir = normalize(Pos-From);
 
-	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	if(pCurrent->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
+	float Opacity;
+	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	else if(m_pClient->m_LocalClientID != pCurrent->m_SoloClientID
+			&& (m_pClient->m_PredictedChar.m_Solo || pCurrent->m_SoloClientID != -1))
+		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+	else
 		Opacity = 1.0f;
 	
 	float Ticks = Client()->GameTick() + Client()->IntraGameTick() - pCurrent->m_StartTick;

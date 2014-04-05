@@ -416,7 +416,7 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
 	{
 		HandleTriggers(pOutTriggers[i]);
 		// dirty fix for dirty code
-		if(pOutTriggers[i]->m_TeleFlags = CCollision::TRIGGERFLAGS_TELEPORT;
+		if(pOutTriggers[i].m_TeleFlags == CCollision::TRIGGERFLAG_TELEPORT)
 			Teleport = true;
 	}
 
@@ -577,7 +577,7 @@ void CCharacterCore::Write(CNetObj_CharacterCore *pObjCore)
 	pObjCore->m_FreezeTick = m_FreezeTick;
 	pObjCore->m_Direction = m_Direction;
 	pObjCore->m_Angle = m_Angle;
-	pObjCore->m_Flags = m_Solo ? COREFLAG_SOLO:0;
+	pObjCore->m_Flags = m_Solo ? COREFLAG_SOLO : 0;
 }
 
 void CCharacterCore::Read(const CNetObj_CharacterCore *pObjCore)

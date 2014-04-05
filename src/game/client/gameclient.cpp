@@ -846,7 +846,8 @@ void CGameClient::ProcessEvents()
 		else if(Item.m_Type == NETEVENTTYPE_EXPLOSION)
 		{
 			CNetEvent_Explosion *ev = (CNetEvent_Explosion *)pData;
-			m_pEffects->Explosion(vec2(ev->m_X, ev->m_Y), ev->m_World);
+			m_pEffects->Explosion(vec2(ev->m_X, ev->m_Y), ev->m_World,
+					ev->m_SoloClientID != m_LocalClientID && (m_PredictedChar.m_Solo || ev->m_SoloClientID != -1));
 		}
 		else if(Item.m_Type == NETEVENTTYPE_HAMMERHIT)
 		{
@@ -866,7 +867,7 @@ void CGameClient::ProcessEvents()
 		else if(Item.m_Type == NETEVENTTYPE_SOUNDWORLD)
 		{
 			CNetEvent_SoundWorld *ev = (CNetEvent_SoundWorld *)pData;
-			if(ev->m_World == m_LocalWorldID)
+			if(ev->m_World == m_LocalWorldID && (ev->m_SoloClientID == m_LocalClientID || (!m_PredictedChar.m_Solo && ev->m_SoloClientID == -1)))
 				m_pSounds->PlayAt(CSounds::CHN_WORLD, ev->m_SoundID, 1.0f, vec2(ev->m_X, ev->m_Y));
 		}
 		else if(Item.m_Type == NETEVENTTYPE_TELEPORT)
@@ -877,23 +878,23 @@ void CGameClient::ProcessEvents()
 	}
 }
 
-void CGameClient::ProcessTriggeredEvents(int Events, vec2 Pos, int WorldID)
+void CGameClient::ProcessTriggeredEvents(int Events, vec2 Pos, int WorldID, bool Solo)
 {
 	if(m_SuppressEvents)
 		return;
-
-	if(Events&COREEVENTFLAG_GROUND_JUMP && WorldID == m_LocalWorldID)
+	
+	if(Events&COREEVENTFLAG_GROUND_JUMP && WorldID == m_LocalWorldID && !Solo)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_PLAYER_JUMP, 1.0f, Pos);
 	if(Events&COREEVENTFLAG_AIR_JUMP)
-		m_pEffects->AirJump(Pos, WorldID);
-	if(Events&COREEVENTFLAG_HOOK_ATTACH_PLAYER && WorldID == m_LocalWorldID)
+		m_pEffects->AirJump(Pos, WorldID, Solo);
+	if(Events&COREEVENTFLAG_HOOK_ATTACH_PLAYER && WorldID == m_LocalWorldID && !Solo)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_ATTACH_PLAYER, 1.0f, Pos);
-	if(Events&COREEVENTFLAG_HOOK_ATTACH_GROUND && WorldID == m_LocalWorldID)
+	if(Events&COREEVENTFLAG_HOOK_ATTACH_GROUND && WorldID == m_LocalWorldID && !Solo)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_ATTACH_GROUND, 1.0f, Pos);
-	if(Events&COREEVENTFLAG_HOOK_HIT_NOHOOK && WorldID == m_LocalWorldID)
+	if(Events&COREEVENTFLAG_HOOK_HIT_NOHOOK && WorldID == m_LocalWorldID && !Solo)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_NOATTACH, 1.0f, Pos);
 	if(Events&COREEVENTFLAG_SPEEDUP)
-		m_pEffects->Speedup(Pos, WorldID);
+		m_pEffects->Speedup(Pos, WorldID, Solo);
 	/*if(Events&COREEVENTFLAG_HOOK_LAUNCH)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_LOOP, 1.0f, Pos);
 	if(Events&COREEVENTFLAG_HOOK_RETRACT)
@@ -1034,7 +1035,6 @@ void CGameClient::OnNewSnapshot()
 			{
 				const void *pOld = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_CHARACTER, Item.m_ID);
 				m_Snap.m_aCharacters[Item.m_ID].m_Cur = *((const CNetObj_Character *)pData);
-				m_Snap.m_aCharacters[Item.m_ID].m_World = ((const CNetObj_Character *)pData)->m_World;
 				if(Item.m_ID == m_LocalClientID)
 					m_LocalWorldID = ((const CNetObj_Character *)pData)->m_World;
 
@@ -1056,7 +1056,9 @@ void CGameClient::OnNewSnapshot()
 				if(Item.m_ID != m_LocalClientID || Client()->State() == IClient::STATE_DEMOPLAYBACK)
 					ProcessTriggeredEvents(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_TriggeredEvents,
 								vec2(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_X,m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Y),
-								m_Snap.m_aCharacters[Item.m_ID].m_World);
+								m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_World,
+								m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Flags&COREFLAG_SOLO
+									|| m_Snap.m_aCharacters[m_LocalClientID].m_Cur.m_Flags&COREFLAG_SOLO);
 			}
 			else if(Item.m_Type == NETOBJTYPE_SPECTATORINFO)
 			{
@@ -1249,7 +1251,7 @@ void CGameClient::OnPredict()
 	// search for players
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(!m_Snap.m_aCharacters[i].m_Active || m_Snap.m_aCharacters[i].m_World != m_LocalWorldID)
+		if(!m_Snap.m_aCharacters[i].m_Active || m_Snap.m_aCharacters[i].m_Cur.m_World != m_LocalWorldID)
 			continue;
 
 		m_aClients[i].m_Predicted.Init(&World, GetDDRTeamCollision(m_LocalWorldID));
@@ -1300,7 +1302,7 @@ void CGameClient::OnPredict()
 			m_LastNewPredictedTick = Tick;
 
 			if(m_LocalClientID != -1 && World.m_apCharacters[m_LocalClientID])
-				ProcessTriggeredEvents(World.m_apCharacters[m_LocalClientID]->m_TriggeredEvents, World.m_apCharacters[m_LocalClientID]->m_Pos, m_LocalWorldID);
+				ProcessTriggeredEvents(World.m_apCharacters[m_LocalClientID]->m_TriggeredEvents, World.m_apCharacters[m_LocalClientID]->m_Pos, m_LocalWorldID, false);
 		}
 
 		if(Tick == Client()->PredGameTick() && World.m_apCharacters[m_LocalClientID])

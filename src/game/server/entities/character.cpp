@@ -332,7 +332,7 @@ void CCharacter::FireWeapon()
 		{
 			// reset objects Hit
 			m_NumObjectsHit = 0;
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_HAMMER_FIRE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_HAMMER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 
 			CCharacter *apEnts[MAX_CLIENTS];
 			int Hits = 0;
@@ -390,13 +390,13 @@ void CCharacter::FireWeapon()
 
 			Server()->SendMsg(&Msg, 0, m_pPlayer->GetCID());
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_GUN_FIRE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_GUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_SHOTGUN:
 		{
 			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), true, m_Nohit || m_Core.m_Solo);
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_SHOTGUN_FIRE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_SHOTGUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_GRENADE:
@@ -418,13 +418,13 @@ void CCharacter::FireWeapon()
 				Msg.AddInt(((int *)&p)[i]);
 			Server()->SendMsg(&Msg, 0, m_pPlayer->GetCID());
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_GRENADE_FIRE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_GRENADE_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_LASER:
 		{
 			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), false, m_Nohit || m_Core.m_Solo);
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_FIRE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_NINJA:
@@ -436,7 +436,7 @@ void CCharacter::FireWeapon()
 			m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
 			m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_NINJA_FIRE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_NINJA_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 	}

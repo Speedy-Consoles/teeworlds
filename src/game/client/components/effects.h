@@ -13,13 +13,13 @@ public:
 
 	virtual void OnRender();
 
-	void BulletTrail(vec2 Pos, int WorldID);
-	void SmokeTrail(vec2 Pos, vec2 Vel, int WorldID);
-	void SkidTrail(vec2 Pos, vec2 Vel, int WorldID);
-	void Explosion(vec2 Pos, int WorldID);
+	void BulletTrail(vec2 Pos, int WorldID, bool Solo);
+	void SmokeTrail(vec2 Pos, vec2 Vel, int WorldID, bool Solo);
+	void SkidTrail(vec2 Pos, vec2 Vel, int WorldID, bool Solo);
+	void Explosion(vec2 Pos, int WorldID, bool Solo);
 	void HammerHit(vec2 Pos, int WorldID);
-	void AirJump(vec2 Pos, int WorldID);
-	void Speedup(vec2 Pos, int WorldID);
+	void AirJump(vec2 Pos, int WorldID, bool Solo);
+	void Speedup(vec2 Pos, int WorldID, bool Solo);
 	void DamageIndicator(vec2 Pos, vec2 Dir, int WorldID);
 	void PlayerSpawn(vec2 Pos, int WorldID);
 	void PlayerTeleport(vec2 Pos, int WorldID);

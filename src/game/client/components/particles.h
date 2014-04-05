@@ -23,6 +23,7 @@ struct CParticle
 	}
 
 	int m_WorldID;
+	bool m_Solo;
 
 	vec2 m_Pos;
 	vec2 m_Vel;

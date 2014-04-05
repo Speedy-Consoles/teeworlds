@@ -113,7 +113,7 @@ void CProjectile::Tick()
 		if(pTargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos))
 		{
 			if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
-				CGameContext::CreateSound(Events(), CurPos, m_SoundImpact);
+				CGameContext::CreateSound(Events(), CurPos, m_SoundImpact, -1, m_OnlySelf ? m_Owner : -1);
 
 			if(m_Explosive)
 				CGameContext::CreateExplosion(Events(), GameWorld(), CurPos, m_Owner, m_Weapon, true, m_OnlySelf);
@@ -145,6 +145,7 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj, int World)
 	pProj->m_StartTick = m_StartTick;
 	pProj->m_Type = m_Type;
 	pProj->m_World = World;
+	pProj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
 }
 
 void CProjectile::Snap(int SnappingClient, int World)

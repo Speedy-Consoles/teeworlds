@@ -97,8 +97,12 @@ void CPlayers::RenderHook(
 
 	CTeeRenderInfo RenderInfo = m_aRenderInfo[ClientID];
 
-	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	if(pPlayerChar->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
+	float Opacity;
+	if(Player.m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_SOLO))
+		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+	else
 		Opacity = 1.0f;
 
 	float IntraTick = Client()->IntraGameTick();
@@ -204,8 +208,16 @@ void CPlayers::RenderPlayer(
 	CNetObj_PlayerInfo pInfo = *pPlayerInfo;
 	CTeeRenderInfo RenderInfo = m_aRenderInfo[ClientID];
 
-	float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	if(pPlayerChar->m_World == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
+	float Opacity;
+	bool Solo = false;
+	if(Player.m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_SOLO))
+	{
+		Solo = true;
+		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+	}
+	else
 		Opacity = 1.0f;
 
 	// set size
@@ -305,7 +317,7 @@ void CPlayers::RenderPlayer(
 	if(!InAir && WantOtherDir && length(Vel*50) > 500.0f)
 	{
 		static int64 SkidSoundTime = 0;
-		if(time_get()-SkidSoundTime > time_freq()/10 && m_pClient->m_LocalWorldID == pPlayerChar->m_World)
+		if(time_get()-SkidSoundTime > time_freq()/10 && m_pClient->m_LocalWorldID == Player.m_World && !Solo)
 		{
 			m_pClient->m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_PLAYER_SKID, 0.25f, Position);
 			SkidSoundTime = time_get();
@@ -314,7 +326,8 @@ void CPlayers::RenderPlayer(
 		m_pClient->m_pEffects->SkidTrail(
 			Position+vec2(-Player.m_Direction*6,12),
 			vec2(-Player.m_Direction*100*length(Vel),-50),
-			Player.m_World
+			Player.m_World,
+			Solo
 		);
 	}
 
@@ -643,14 +656,14 @@ void CPlayers::OnRender()
 			{
 				//
 				bool Local = m_pClient->m_LocalClientID == i;
-				bool LocalWorld = m_pClient->m_Snap.m_aCharacters[i].m_World == m_pClient->m_LocalWorldID;
+				bool Opaque = Local || (m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_World == m_pClient->m_LocalWorldID && !m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_Flags&COREFLAG_SOLO);
 				if(p < 2)
 				{
-					if(LocalWorld) continue;
+					if(Opaque) continue;
 				}
 				else
 				{
-					if(!LocalWorld) continue;
+					if(!Opaque) continue;
 					if((p % 2) == 0 && Local) continue;
 					if((p % 2) == 1 && !Local) continue;
 				}

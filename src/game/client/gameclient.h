@@ -51,7 +51,7 @@ class CGameClient : public IGameClient
 
 	void DispatchInput();
 	void ProcessEvents();
-	void ProcessTriggeredEvents(int Events, vec2 Pos, int WorldID);
+	void ProcessTriggeredEvents(int Events, vec2 Pos, int WorldID, bool Solo);
 	void UpdatePositions();
 
 	int m_PredictedTick;
@@ -150,7 +150,6 @@ public:
 		struct CCharacterInfo
 		{
 			bool m_Active;
-			int m_World;
 
 			// snapshots
 			CNetObj_Character m_Prev;

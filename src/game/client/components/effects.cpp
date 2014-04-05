@@ -24,11 +24,12 @@ CEffects::CEffects()
 	m_Add100hz = false;
 }
 
-void CEffects::AirJump(vec2 Pos, int WorldID)
+void CEffects::AirJump(vec2 Pos, int WorldID, bool Solo)
 {
 	CParticle p;
 	p.SetDefault();
 	p.m_WorldID = WorldID;
+	p.m_Solo = Solo;
 	p.m_Spr = SPRITE_PART_AIRJUMP;
 	p.m_Pos = Pos + vec2(-6.0f, 16.0f);
 	p.m_Vel = vec2(0, -200);
@@ -49,11 +50,12 @@ void CEffects::AirJump(vec2 Pos, int WorldID)
 		m_pClient->m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_PLAYER_AIRJUMP, 1.0f, Pos);
 }
 
-void CEffects::Speedup(vec2 Pos, int WorldID)
+void CEffects::Speedup(vec2 Pos, int WorldID, bool Solo)
 {
 	CParticle p;
 	p.SetDefault();
 	p.m_WorldID = WorldID;
+	p.m_Solo = Solo;
 	p.m_Spr = SPRITE_PART_AIRJUMP;
 	p.m_Pos = Pos + vec2(-6.0f, 16.0f);
 	p.m_Vel = vec2(0, -200);
@@ -98,7 +100,7 @@ void CEffects::PowerupShine(vec2 Pos, vec2 size)
 	m_pClient->m_pParticles->Add(CParticles::GROUP_GENERAL, &p);
 }
 
-void CEffects::SmokeTrail(vec2 Pos, vec2 Vel, int WorldID)
+void CEffects::SmokeTrail(vec2 Pos, vec2 Vel, int WorldID, bool Solo)
 {
 	if(!m_Add50hz)
 		return;
@@ -106,6 +108,7 @@ void CEffects::SmokeTrail(vec2 Pos, vec2 Vel, int WorldID)
 	CParticle p;
 	p.SetDefault();
 	p.m_WorldID = WorldID;
+	p.m_Solo = Solo;
 	p.m_Spr = SPRITE_PART_SMOKE;
 	p.m_Pos = Pos;
 	p.m_Vel = Vel + RandomDir()*50.0f;
@@ -118,7 +121,7 @@ void CEffects::SmokeTrail(vec2 Pos, vec2 Vel, int WorldID)
 }
 
 
-void CEffects::SkidTrail(vec2 Pos, vec2 Vel, int WorldID)
+void CEffects::SkidTrail(vec2 Pos, vec2 Vel, int WorldID, bool Solo)
 {
 	if(!m_Add100hz)
 		return;
@@ -126,6 +129,7 @@ void CEffects::SkidTrail(vec2 Pos, vec2 Vel, int WorldID)
 	CParticle p;
 	p.SetDefault();
 	p.m_WorldID = WorldID;
+	p.m_Solo = Solo;
 	p.m_Spr = SPRITE_PART_SMOKE;
 	p.m_Pos = Pos;
 	p.m_Vel = Vel + RandomDir()*50.0f;
@@ -138,7 +142,7 @@ void CEffects::SkidTrail(vec2 Pos, vec2 Vel, int WorldID)
 	m_pClient->m_pParticles->Add(CParticles::GROUP_GENERAL, &p);
 }
 
-void CEffects::BulletTrail(vec2 Pos, int WorldID)
+void CEffects::BulletTrail(vec2 Pos, int WorldID, bool Solo)
 {
 	if(!m_Add100hz)
 		return;
@@ -146,6 +150,7 @@ void CEffects::BulletTrail(vec2 Pos, int WorldID)
 	CParticle p;
 	p.SetDefault();
 	p.m_WorldID = WorldID;
+	p.m_Solo = false;
 	p.m_Spr = SPRITE_PART_BALL;
 	p.m_Pos = Pos;
 	p.m_LifeSpan = 0.25f + frandom()*0.25f;
@@ -162,6 +167,7 @@ void CEffects::PlayerSpawn(vec2 Pos, int WorldID)
 		CParticle p;
 		p.SetDefault();
 		p.m_WorldID = WorldID;
+		p.m_Solo = false;
 		p.m_Spr = SPRITE_PART_SHELL;
 		p.m_Pos = Pos;
 		p.m_Vel = RandomDir() * (powf(frandom(), 3)*600.0f);
@@ -187,6 +193,7 @@ void CEffects::PlayerTeleport(vec2 Pos, int WorldID)
 		CParticle p;
 		p.SetDefault();
 		p.m_WorldID = WorldID;
+		p.m_Solo = false;
 		p.m_Spr = SPRITE_PART_SHELL;
 		p.m_Pos = Pos;
 		p.m_Vel = RandomDir() * (powf(frandom(), 3)*600.0f);
@@ -224,6 +231,7 @@ void CEffects::PlayerDeath(vec2 Pos, int ClientID, int WorldID)
 		CParticle p;
 		p.SetDefault();
 		p.m_WorldID = WorldID;
+		p.m_Solo = false;
 		p.m_Spr = SPRITE_PART_SPLAT01 + (rand()%3);
 		p.m_Pos = Pos;
 		p.m_Vel = RandomDir() * ((frandom()+0.1f)*900.0f);
@@ -241,7 +249,7 @@ void CEffects::PlayerDeath(vec2 Pos, int ClientID, int WorldID)
 }
 
 
-void CEffects::Explosion(vec2 Pos, int WorldID)
+void CEffects::Explosion(vec2 Pos, int WorldID, bool Solo)
 {
 	// add to flow
 	for(int y = -8; y <= 8; y++)
@@ -258,6 +266,7 @@ void CEffects::Explosion(vec2 Pos, int WorldID)
 	CParticle p;
 	p.SetDefault();
 	p.m_WorldID = WorldID;
+	p.m_Solo = Solo;
 	p.m_Spr = SPRITE_PART_EXPL01;
 	p.m_Pos = Pos;
 	p.m_LifeSpan = 0.4f;
@@ -272,6 +281,7 @@ void CEffects::Explosion(vec2 Pos, int WorldID)
 		CParticle p;
 		p.SetDefault();
 		p.m_WorldID = WorldID;
+		p.m_Solo = Solo;
 		p.m_Spr = SPRITE_PART_SMOKE;
 		p.m_Pos = Pos;
 		p.m_Vel = RandomDir() * ((1.0f + frandom()*0.2f) * 1000.0f);

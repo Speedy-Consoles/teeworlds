@@ -9,6 +9,7 @@ PlayerFlags = Flags("PLAYERFLAG", ["ADMIN", "CHATTING", "SCOREBOARD", "READY", "
 GameFlags = Flags("GAMEFLAG", ["TEAMS", "FLAGS", "SURVIVAL"])
 GameStateFlags = Flags("GAMESTATEFLAG", ["WARMUP", "SUDDENDEATH", "ROUNDOVER", "GAMEOVER", "PAUSED", "STARTCOUNTDOWN"])
 CoreEventFlags = Flags("COREEVENTFLAG", ["GROUND_JUMP", "AIR_JUMP", "HOOK_ATTACH_PLAYER", "HOOK_ATTACH_GROUND", "HOOK_HIT_NOHOOK", "FREEZE", "SPEEDUP"])
+CoreFlags = Flags("COREFLAG", ["SOLO"])
 
 GameMsgIDs = Enum("GAMEMSG", ["TEAM_SWAP", "SPEC_INVALIDID", "TEAM_SHUFFLE", "TEAM_BALANCE", "CTF_DROP", "CTF_RETURN",
 							
@@ -59,6 +60,7 @@ Flags = [
 	GameFlags,
 	GameStateFlags,
 	CoreEventFlags,
+	CoreFlags,
 ]
 
 Objects = [
@@ -93,6 +95,7 @@ Objects = [
 		NetTick("m_StartTick"),
 
 		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
 	]),
 
 	NetObject("Laser", [
@@ -104,6 +107,7 @@ Objects = [
 		NetTick("m_StartTick"),
 
 		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
 	]),
 
 	NetObject("Pickup", [
@@ -158,7 +162,7 @@ Objects = [
 		NetTick("m_HookTick"),
 		NetTick("m_FreezeTick"),
 		
-		NetIntAny("m_Flags"),
+		NetFlag("m_Flags", CoreFlags),
 
 		NetIntAny("m_HookX"),
 		NetIntAny("m_HookY"),
@@ -225,6 +229,7 @@ Objects = [
 		NetIntAny("m_X"),
 		NetIntAny("m_Y"),
 		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
 	]),
 
 

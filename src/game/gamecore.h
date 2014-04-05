@@ -130,8 +130,6 @@ enum
 	HOOK_RETRACT_END=3,
 	HOOK_FLYING,
 	HOOK_GRABBED,
-
-	COREFLAG_SOLO = 1,
 };
 
 class CWorldCore

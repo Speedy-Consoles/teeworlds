@@ -84,7 +84,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE, -1, m_OnlySelf ? m_Owner : -1);
 		}
 	}
 	else
@@ -129,4 +129,5 @@ void CLaser::Snap(int SnappingClient, int World)
 	pObj->m_FromY = (int)m_From.y;
 	pObj->m_StartTick = m_EvalTick;
 	pObj->m_World = World;
+	pObj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
 }

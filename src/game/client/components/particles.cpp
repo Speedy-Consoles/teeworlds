@@ -167,8 +167,12 @@ void CParticles::RenderGroup(int Group)
 	int i = m_aFirstPart[Group];
 	while(i != -1)
 	{
-		float Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-		if(m_aParticles[i].m_WorldID == m_pClient->m_LocalWorldID || m_pClient->m_LocalWorldID == -1)
+		float Opacity;
+		if(m_aParticles[i].m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+			Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+		else if(m_aParticles[i].m_Solo)
+			Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+		else
 			Opacity = 1.0f;
 
 		RenderTools()->SelectSprite(m_aParticles[i].m_Spr);

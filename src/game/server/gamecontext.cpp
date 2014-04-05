@@ -122,6 +122,7 @@ void CGameContext::CreateDamageInd(CEventHandler *pEvents, vec2 Pos, float Angle
 			pEvent->m_Y = (int)Pos.y;
 			pEvent->m_Angle = (int)(f*256.0f);
 			pEvent->m_World = -1;
+			pEvent->m_SoloClientID = -1;
 		}
 	}
 }
@@ -135,6 +136,7 @@ void CGameContext::CreateHammerHit(CEventHandler *pEvents, vec2 Pos)
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_World = -1;
+		pEvent->m_SoloClientID = -1;
 	}
 }
 
@@ -148,6 +150,7 @@ void CGameContext::CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, v
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_World = -1;
+		pEvent->m_SoloClientID = OnlySelf ? Owner : -1;
 	}
 
 	// deal damage
@@ -181,6 +184,7 @@ void CGameContext::CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos)
 		ev->m_X = (int)Pos.x;
 		ev->m_Y = (int)Pos.y;
 		ev->m_World = -1;
+		ev->m_SoloClientID = -1;
 	}
 }
 
@@ -193,6 +197,7 @@ void CGameContext::CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos)
 		ev->m_X = (int)Pos.x;
 		ev->m_Y = (int)Pos.y;
 		ev->m_World = -1;
+		ev->m_SoloClientID = -1;
 	}
 }
 
@@ -206,10 +211,11 @@ void CGameContext::CreateDeath(CEventHandler *pEvents, vec2 Pos, int ClientID)
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_ClientID = ClientID;
 		pEvent->m_World = -1;
+		pEvent->m_SoloClientID = -1;
 	}
 }
 
-void CGameContext::CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int Mask)
+void CGameContext::CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int Mask, int SoloClientID)
 {
 	if (Sound < 0)
 		return;
@@ -222,6 +228,7 @@ void CGameContext::CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int 
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_SoundID = Sound;
 		pEvent->m_World = -1;
+		pEvent->m_SoloClientID = SoloClientID;
 	}
 }
 

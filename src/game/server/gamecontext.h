@@ -145,7 +145,7 @@ public:
 	static void CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos);
 	static void CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos);
 	static void CreateDeath(CEventHandler *pEvents, vec2 Pos, int Who);
-	static void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int Mask=-1);
+	static void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int Mask=-1, int SoloClientID=-1);
 
 
 	enum
