@@ -56,6 +56,8 @@ public:
 
 	void SetEmote(int Emote, int Tick);
 
+	bool Solo() { return m_Core.m_Solo; }
+
 	void Freeze();
 	void Unfreeze();
 	void DeepFreeze();

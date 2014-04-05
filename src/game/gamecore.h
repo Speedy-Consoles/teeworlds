@@ -130,6 +130,8 @@ enum
 	HOOK_RETRACT_END=3,
 	HOOK_FLYING,
 	HOOK_GRABBED,
+
+	COREFLAG_SOLO = 1,
 };
 
 class CWorldCore
@@ -157,7 +159,9 @@ public:
 	int m_HookTick;
 	int m_HookState;
 	int m_HookedPlayer;
+
 	bool m_Endless;
+	bool m_Solo;
 
 	int m_Jumped;
 

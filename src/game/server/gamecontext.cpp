@@ -157,7 +157,7 @@ void CGameContext::CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, v
 	int Num = pWorld->FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 	for(int i = 0; i < Num; i++)
 	{
-		if(OnlySelf && ((CCharacter *)apEnts[i])->GetPlayer()->GetCID() != Owner)
+		if((OnlySelf && ((CCharacter *)apEnts[i])->GetPlayer()->GetCID() != Owner) || (((CCharacter *)apEnts[i])->Solo() && ((CCharacter *)apEnts[i])->GetPlayer()->GetCID() != Owner))
 			continue;
 
 		vec2 Diff = apEnts[i]->m_Pos - Pos;

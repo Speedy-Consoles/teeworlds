@@ -26,16 +26,10 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	vec2 At;
 	CCharacter *pHit;
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	if(m_OnlySelf && m_Bounces == 0)
 		return false;
-	else if(m_OnlySelf)
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar, true);
-	else if(m_Bounces == 0)
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar, false);
-	else
-		pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, 0, false);
 
+	pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, HitCharacter, this);
 	if(!pHit)
 		return false;
 
@@ -47,6 +41,14 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	else
 		pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_LASER);
 	return true;
+}
+
+bool CLaser::HitCharacter(CCharacter *pCharacter, void *pUserData) {
+	CLaser *pLaser = (CLaser *)pUserData;
+	if(pCharacter->GetPlayer()->GetCID() == pLaser->m_Owner)
+		return pLaser->m_Bounces > 0;
+	else
+		return !pLaser->m_OnlySelf && !pCharacter->Solo();
 }
 
 void CLaser::DoBounce()

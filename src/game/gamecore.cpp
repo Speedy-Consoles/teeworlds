@@ -75,6 +75,7 @@ void CCharacterCore::Reset()
 	m_FreezeTick = 0;
 	m_UnfreezeOnNextTick = false;
 	m_TriggeredEvents = 0;
+	m_Solo = 0;
 }
 
 void CCharacterCore::Tick(bool UseInput)
@@ -231,13 +232,13 @@ void CCharacterCore::Tick(bool UseInput)
 		}
 
 		// Check against other players first
-		if(m_pWorld && m_pWorld->m_Tuning.m_PlayerHooking)
+		if(m_pWorld && m_pWorld->m_Tuning.m_PlayerHooking && !m_Solo)
 		{
 			float Distance = 0.0f;
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[i];
-				if(!pCharCore || pCharCore == this)
+				if(!pCharCore || pCharCore == this || pCharCore->m_Solo)
 					continue;
 
 				vec2 ClosestPoint = closest_point_on_line(m_HookPos, NewPos, pCharCore->m_Pos);
@@ -325,7 +326,8 @@ void CCharacterCore::Tick(bool UseInput)
 		else
 			m_HookTick++;
 
-		if(m_FreezeTick != 0 || (m_HookedPlayer != -1 && (m_HookTick > SERVER_TICK_SPEED+SERVER_TICK_SPEED/5 || !m_pWorld->m_apCharacters[m_HookedPlayer])))
+		if(m_FreezeTick != 0 || (m_HookedPlayer != -1 && (m_HookTick > SERVER_TICK_SPEED+SERVER_TICK_SPEED/5 || !m_pWorld->m_apCharacters[m_HookedPlayer]
+									 || m_Solo || m_pWorld->m_apCharacters[m_HookedPlayer]->m_Solo)))
 		{
 			m_HookedPlayer = -1;
 			m_HookState = HOOK_RETRACTED;
@@ -340,7 +342,7 @@ void CCharacterCore::Tick(bool UseInput)
 		}
 	}
 
-	if(m_pWorld)
+	if(m_pWorld && !m_Solo)
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
@@ -349,7 +351,7 @@ void CCharacterCore::Tick(bool UseInput)
 				continue;
 
 			//player *p = (player*)ent;
-			if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
+			if(pCharCore == this || pCharCore->m_Solo) // || !(p->flags&FLAG_ALIVE)
 				continue; // make sure that we don't nudge our self
 
 			// handle player <-> player collision
@@ -420,7 +422,7 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
 
 	m_Vel.x = m_Vel.x*(1.0f/RampValue);
 
-	if(m_pWorld && m_pWorld->m_Tuning.m_PlayerCollision && !Teleport)
+	if(m_pWorld && m_pWorld->m_Tuning.m_PlayerCollision && !Teleport && !m_Solo)
 	{
 		// check player collision
 		float Distance = distance(m_Pos, NewPos);
@@ -433,7 +435,7 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
 			for(int p = 0; p < MAX_CLIENTS; p++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
-				if(!pCharCore || pCharCore == this)
+				if(!pCharCore || pCharCore == this || pCharCore->m_Solo)
 					continue;
 				float D = distance(Pos, pCharCore->m_Pos);
 				if(D < 28.0f && D > 0.0f)
@@ -523,6 +525,11 @@ void CCharacterCore::HandleTriggers(CCollision::CTriggers Triggers)
 		m_Endless = true;
 	else if(Triggers.m_Endless == CCollision::PROPERTEE_OFF)
 		m_Endless = false;
+
+	if(Triggers.m_Solo == CCollision::PROPERTEE_ON)
+		m_Solo = true;
+	else if(Triggers.m_Solo == CCollision::PROPERTEE_OFF)
+		m_Solo = false;
 }
 
 void CCharacterCore::Freeze()
@@ -570,6 +577,7 @@ void CCharacterCore::Write(CNetObj_CharacterCore *pObjCore)
 	pObjCore->m_FreezeTick = m_FreezeTick;
 	pObjCore->m_Direction = m_Direction;
 	pObjCore->m_Angle = m_Angle;
+	pObjCore->m_Flags = m_Solo ? COREFLAG_SOLO:0;
 }
 
 void CCharacterCore::Read(const CNetObj_CharacterCore *pObjCore)
@@ -588,6 +596,7 @@ void CCharacterCore::Read(const CNetObj_CharacterCore *pObjCore)
 	m_FreezeTick = pObjCore->m_FreezeTick;
 	m_Direction = pObjCore->m_Direction;
 	m_Angle = pObjCore->m_Angle;
+	m_Solo = pObjCore->m_Flags & COREFLAG_SOLO;
 }
 
 void CCharacterCore::Quantize()

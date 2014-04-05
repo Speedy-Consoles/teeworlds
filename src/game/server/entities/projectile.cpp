@@ -4,6 +4,7 @@
 
 #include "character.h"
 #include "projectile.h"
+#include <game/server/player.h>
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
 		int Damage, bool Explosive, float Force, int SoundImpact, int Weapon, int SwitchGroup, bool InvertSwitch, bool OnlySelf)
@@ -101,12 +102,11 @@ void CProjectile::Tick()
 	else
 	{
 		CurPos = ColPos;
-		CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 		CCharacter *pTargetChr;
 		if(m_OnlySelf)
 			pTargetChr = 0;
 		else
-			pTargetChr = GameWorld()->IntersectCharacter(PrevPos, CurPos, 6.0f, CurPos, pOwnerChar);
+			pTargetChr = GameWorld()->IntersectCharacter(PrevPos, CurPos, 6.0f, CurPos, HitCharacter, this);
 
 		m_LifeSpan--;
 
@@ -124,6 +124,11 @@ void CProjectile::Tick()
 			GameWorld()->DestroyEntity(this);
 		}
 	}
+}
+
+bool CProjectile::HitCharacter(CCharacter *pCharacter, void *pUserData) {
+	CProjectile *pProj = (CProjectile *)pUserData;
+	return !(pCharacter->GetPlayer()->GetCID() == pProj->m_Owner || pCharacter->Solo() || pProj->m_OnlySelf);
 }
 
 void CProjectile::TickPaused()
