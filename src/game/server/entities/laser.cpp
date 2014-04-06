@@ -17,6 +17,7 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_EvalTick = 0;
 	m_Pull = Pull;
 	m_OnlySelf = OnlySelf;
+	m_Persistent = true;
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }

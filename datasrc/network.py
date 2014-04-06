@@ -401,6 +401,14 @@ Messages = [
 
 	NetMessage("Cl_ReadyChange", []),
 
+	NetMessage("Cl_NewRaceTeam", []),
+	
+	NetMessage("Cl_JoinRaceTeam", [
+		NetIntRange("m_ClientID", 0, 'MAX_CLIENTS'),
+	]),
+
+	NetMessage("Cl_LeaveRaceTeam", []),
+
 	NetMessage("Cl_Emoticon", [
 		NetEnum("m_Emoticon", Emoticons),
 	]),

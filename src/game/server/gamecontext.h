@@ -63,20 +63,11 @@ class CGameContext : public IGameServer
 
 	void ExtendEmoticon(int ClientID, int Emoticon);
 
-	int GetEmptyWorld();
+	int GetEmptyWorldID();
 
 	bool m_Resetting;
 
-	enum
-	{
-		TEAMSTATE_OPEN = 0,
-		TEAMSTATE_PRIVATE,
-		TEAMSTATE_STARTED,
-		TEAMSTATE_FINISHED,
-	};
-
 	CGameWorld m_aWorlds[NUM_WORLDS];
-	int m_aTeamStates[MAX_CLIENTS];
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
@@ -165,6 +156,7 @@ public:
 	//
 	void CheckPureTuning();
 	void SendTuningParams(int ClientID);
+	bool ClientWorldRunning(int ClientID);
 
 	// engine events
 	virtual void OnInit();

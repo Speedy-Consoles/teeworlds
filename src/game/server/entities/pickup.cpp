@@ -12,6 +12,7 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SwitchGroup, bool InvertS
 {
 	m_Type = Type;
 	m_ProximityRadius = PickupPhysSize;
+	m_Persistent = false;
 
 	Reset();
 

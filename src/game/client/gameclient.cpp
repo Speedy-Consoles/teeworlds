@@ -224,6 +224,10 @@ void CGameClient::OnConsoleInit()
 	// add the some console commands
 	Console()->Register("kill", "", CFGFLAG_CLIENT, ConKill, this, "Kill yourself");
 	Console()->Register("ready_change", "", CFGFLAG_CLIENT, ConReadyChange, this, "Change ready state");
+	
+	Console()->Register("new_race_team", "", CFGFLAG_CLIENT, ConNewRaceTeam, this, "Create a new race team");
+	Console()->Register("join_race_team", "i", CFGFLAG_CLIENT, ConJoinRaceTeam, this, "Join race team of client with specified ID");
+	Console()->Register("leave_race_team", "", CFGFLAG_CLIENT, ConLeaveRaceTeam, this, "Leaves the current race team");
 
 	Console()->Chain("add_friend", ConchainFriendUpdate, this);
 	Console()->Chain("remove_friend", ConchainFriendUpdate, this);
@@ -1025,6 +1029,7 @@ void CGameClient::OnNewSnapshot()
 
 						if(m_aClients[ClientID].m_Team == TEAM_SPECTATORS)
 						{
+							m_LocalWorldID = -1;
 							m_Snap.m_SpecInfo.m_Active = true;
 							m_Snap.m_SpecInfo.m_SpectatorID = SPEC_FREEVIEW;
 						}
@@ -1470,6 +1475,25 @@ void CGameClient::SendReadyChange()
 	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
 }
 
+void CGameClient::SendNewRaceTeam()
+{
+	CNetMsg_Cl_NewRaceTeam Msg;
+	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
+}
+
+void CGameClient::SendJoinRaceTeam(int ClientID)
+{
+	CNetMsg_Cl_JoinRaceTeam Msg;
+	Msg.m_ClientID = ClientID;
+	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
+}
+
+void CGameClient::SendLeaveRaceTeam()
+{
+	CNetMsg_Cl_LeaveRaceTeam Msg;
+	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
+}
+
 void CGameClient::ConKill(IConsole::IResult *pResult, void *pUserData)
 {
 	((CGameClient*)pUserData)->SendKill();
@@ -1478,6 +1502,21 @@ void CGameClient::ConKill(IConsole::IResult *pResult, void *pUserData)
 void CGameClient::ConReadyChange(IConsole::IResult *pResult, void *pUserData)
 {
 	((CGameClient*)pUserData)->SendReadyChange();
+}
+
+void CGameClient::ConNewRaceTeam(IConsole::IResult *pResult, void *pUserData)
+{
+	((CGameClient*)pUserData)->SendNewRaceTeam();
+}
+
+void CGameClient::ConJoinRaceTeam(IConsole::IResult *pResult, void *pUserData)
+{
+	((CGameClient*)pUserData)->SendJoinRaceTeam(pResult->GetInteger(0));
+}
+
+void CGameClient::ConLeaveRaceTeam(IConsole::IResult *pResult, void *pUserData)
+{
+	((CGameClient*)pUserData)->SendLeaveRaceTeam();
 }
 
 void CGameClient::ConchainFriendUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

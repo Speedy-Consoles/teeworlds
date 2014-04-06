@@ -26,6 +26,8 @@ CGameWorld::CGameWorld()
 		m_aSwitchStates[i] = false;
 		m_aSwitchTicks[i] = -1;
 	}
+	
+	m_RaceState = RACESTATE_OPEN;
 }
 
 CGameWorld::~CGameWorld()
@@ -161,7 +163,7 @@ void CGameWorld::Reset(bool Soft)
 		for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
 		{
 			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
-			if(!Soft || pEnt->m_ObjType != CGameWorld::ENTTYPE_CHARACTER)
+			if(!Soft || !pEnt->m_Persistent)
 				pEnt->Reset();
 			pEnt = m_pNextTraverseEntity;
 		}

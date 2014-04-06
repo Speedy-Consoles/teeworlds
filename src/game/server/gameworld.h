@@ -26,7 +26,12 @@ public:
 		ENTTYPE_PICKUP,
 		ENTTYPE_FLAG,
 		ENTTYPE_CHARACTER,
-		NUM_ENTTYPES
+		NUM_ENTTYPES,
+
+		RACESTATE_OPEN = 0,
+		RACESTATE_PRIVATE,
+		RACESTATE_STARTED,
+		RACESTATE_FINISHED,
 	};
 
 private:
@@ -42,6 +47,7 @@ private:
 
 	class IServer *m_pServer;
 
+	int m_RaceState;
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CCollision *Collision() { return &m_Collision; }
@@ -58,6 +64,8 @@ public:
 	bool m_SwitchStateChanged;
 
 	void SetSwitchState(bool State, int GroupID, int Duration);
+
+	int RaceState() { return m_RaceState; }
 
 	CGameWorld();
 	~CGameWorld();

@@ -750,14 +750,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			int Length = 0;
 			const char *p = pMsg->m_pMessage;
 			const char *pEnd = 0;
-			if(p[0] == '+')
-			{
-				pPlayer->ChangeWorld((pPlayer->WorldID()+1)%NUM_WORLDS);
-			}
-			else if(p[0] == '-')
-			{
-				pPlayer->ChangeWorld((pPlayer->WorldID()+NUM_WORLDS-1)%NUM_WORLDS);
-			}
 			while(*p)
  			{
 				const char *pStrOld = p;
@@ -946,7 +938,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(!pPlayer->SetSpectatorID(pMsg->m_SpectatorID))
 				SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 		}
-		else if (MsgID == NETMSGTYPE_CL_EMOTICON && m_apPlayers[ClientID]->WorldID() != -1 && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_EMOTICON && ClientWorldRunning(ClientID))
 		{
 			CNetMsg_Cl_Emoticon *pMsg = (CNetMsg_Cl_Emoticon *)pRawMsg;
 
@@ -959,13 +951,46 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			ExtendEmoticon(ClientID, pMsg->m_Emoticon);
 		}
-		else if (MsgID == NETMSGTYPE_CL_KILL && m_apPlayers[ClientID]->WorldID() != -1 && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_KILL && ClientWorldRunning(ClientID))
 		{
 			if(pPlayer->m_LastKill && pPlayer->m_LastKill+Server()->TickSpeed()*3 > Server()->Tick())
 				return;
 
 			pPlayer->m_LastKill = Server()->Tick();
 			pPlayer->KillCharacter(WEAPON_SELF);
+		}
+		else if (MsgID == NETMSGTYPE_CL_NEWRACETEAM && !m_pController->IsGamePaused())
+		{
+			int WorldID = GetEmptyWorldID();
+			if(WorldID != -1)
+			{
+				if(pPlayer->WorldID() != -1 && (m_aWorlds[pPlayer->WorldID()].RaceState() == CGameWorld::RACESTATE_STARTED
+									|| m_aWorlds[pPlayer->WorldID()].RaceState() == CGameWorld::RACESTATE_FINISHED))
+					pPlayer->KillCharacter();
+				m_aWorlds[WorldID].m_SoftResetRequested = true;
+				m_aWorlds[WorldID].m_Paused = false;
+				pPlayer->ChangeWorld(WorldID);
+			}
+		}
+		else if (MsgID == NETMSGTYPE_CL_JOINRACETEAM  && !m_pController->IsGamePaused())
+		{
+			CNetMsg_Cl_JoinRaceTeam *pMsg = (CNetMsg_Cl_JoinRaceTeam *)pRawMsg;
+			if(m_apPlayers[pMsg->m_ClientID] && m_apPlayers[pMsg->m_ClientID]->WorldID() != -1
+					&& (m_aWorlds[m_apPlayers[pMsg->m_ClientID]->WorldID()].RaceState() == CGameWorld::RACESTATE_OPEN
+						|| m_aWorlds[m_apPlayers[pMsg->m_ClientID]->WorldID()].RaceState() == CGameWorld::RACESTATE_FINISHED))
+			{
+				if(pPlayer->WorldID() != -1 && (m_aWorlds[pPlayer->WorldID()].RaceState() == CGameWorld::RACESTATE_STARTED
+									|| m_aWorlds[pPlayer->WorldID()].RaceState() == CGameWorld::RACESTATE_FINISHED))
+					pPlayer->KillCharacter();
+				pPlayer->ChangeWorld(m_apPlayers[pMsg->m_ClientID]->WorldID());
+			}
+		}
+		else if (MsgID == NETMSGTYPE_CL_LEAVERACETEAM && !m_pController->IsGamePaused())
+		{
+			if(pPlayer->WorldID() != -1 && (m_aWorlds[pPlayer->WorldID()].RaceState() == CGameWorld::RACESTATE_STARTED
+								|| m_aWorlds[pPlayer->WorldID()].RaceState() == CGameWorld::RACESTATE_FINISHED))
+				pPlayer->KillCharacter();
+			pPlayer->ChangeWorld(DEFAULT_WORLDID);
 		}
 	}
 	else
@@ -1021,6 +1046,29 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			Server()->SendPackMsg(&m, MSGFLAG_VITAL|MSGFLAG_FLUSH, ClientID);
 		}
 	}
+}
+
+int CGameContext::GetEmptyWorldID()
+{
+	bool WorldBusy[NUM_WORLDS];
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_apPlayers[i] && m_apPlayers[i]->WorldID() != -1)
+			WorldBusy[m_apPlayers[i]->WorldID()] = true;
+	}
+
+	for(int i = 0; i < NUM_WORLDS; i++)
+	{
+		if(!WorldBusy[i] && i != DEFAULT_WORLDID)
+			return i;
+	}
+
+	return -1;
+}
+
+bool CGameContext::ClientWorldRunning(int ClientID)
+{
+	return m_apPlayers[ClientID]->WorldID() != -1 && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused;
 }
 
 void CGameContext::ExtendEmoticon(int ClientID, int Emoticon)

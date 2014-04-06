@@ -30,6 +30,7 @@ protected:
 	int m_ID;
 	int m_ObjType;
 	int m_SwitchGroup;
+	bool m_Persistent;
 	bool m_InvertSwitch;
 public:
 	CEntity(CGameWorld *pGameWorld, int Objtype, int SwitchGroup, bool InvertSwitch);

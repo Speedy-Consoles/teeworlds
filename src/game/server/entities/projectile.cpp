@@ -24,6 +24,10 @@ CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, 
 	m_StartTick = Server()->Tick();
 	m_Explosive = Explosive;
 	m_OnlySelf = OnlySelf;
+	if(m_Type == WEAPON_SHOTGUN)
+		m_Persistent = false;
+	else
+		m_Persistent = true;
 
 	GameWorld()->InsertEntity(this);
 }

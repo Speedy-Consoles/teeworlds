@@ -59,6 +59,9 @@ class CGameClient : public IGameClient
 
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
 	static void ConReadyChange(IConsole::IResult *pResult, void *pUserData);
+	static void ConNewRaceTeam(IConsole::IResult *pResult, void *pUserData);
+	static void ConJoinRaceTeam(IConsole::IResult *pResult, void *pUserData);
+	static void ConLeaveRaceTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainFriendUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 
@@ -259,6 +262,9 @@ public:
 	void SendStartInfo();
 	void SendKill();
 	void SendReadyChange();
+	void SendNewRaceTeam();
+	void SendJoinRaceTeam(int ClientID);
+	void SendLeaveRaceTeam();
 
 	// pointers to all systems
 	class CGameConsole *m_pGameConsole;
