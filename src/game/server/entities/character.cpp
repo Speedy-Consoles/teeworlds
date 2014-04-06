@@ -106,7 +106,7 @@ void CCharacter::SetWeapon(int W)
 	m_LastWeapon = m_ActiveWeapon;
 	m_QueuedWeapon = -1;
 	m_ActiveWeapon = W;
-	CGameContext::CreateSound(Events(), m_Pos, SOUND_WEAPON_SWITCH);
+	CGameContext::CreateSound(Events(), m_Pos, SOUND_WEAPON_SWITCH, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 
 	if(m_ActiveWeapon < 0 || m_ActiveWeapon >= NUM_WEAPONS)
 		m_ActiveWeapon = 0;

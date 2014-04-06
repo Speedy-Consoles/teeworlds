@@ -34,7 +34,8 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 			Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
 	}
 	else if(m_pClient->m_LocalClientID != pCurrent->m_SoloClientID
-			&& (m_pClient->m_PredictedChar.m_Solo || pCurrent->m_SoloClientID != -1))
+			&& (m_pClient->m_PredictedChar.m_Solo || pCurrent->m_SoloClientID != -1)
+			&& pCurrent->m_Type != WEAPON_SHOTGUN)
 	{
 		Solo = true;
 		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
