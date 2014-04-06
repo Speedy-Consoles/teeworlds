@@ -341,7 +341,7 @@ void CGameClient::OnConnected()
 {
 	m_Layers.Init(Kernel());
 	m_aCollision[0].Init(Layers(), m_aaSwitchStates[0]);
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		m_aCollision[i].Init(&m_aCollision[0], m_aaSwitchStates[i]);
 
 	RenderTools()->RenderTilemapGenerateSkip(Layers());

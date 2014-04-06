@@ -21,7 +21,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool Dummy)
 	m_pCharacter = 0;
 	m_ClientID = ClientID;
 	m_Team = TEAM_RED;
-	m_WorldID = 0;
+	m_WorldID = DEFAULT_WORLDID;
 	m_SpectatorID = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
@@ -290,6 +290,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	
 	if(Team == TEAM_SPECTATORS)
 	{
+		m_WorldID = -1;
 		// update spectator modes
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
@@ -299,12 +300,11 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	}
 }
 
-void CPlayer::SetWorldID(int Team)
+void CPlayer::ChangeWorld(int WorldID)
 {
-	if(Team == m_WorldID)
-		return;
-	m_WorldID = Team;
-	KillCharacter();
+	m_WorldID = WorldID;
+	if(m_pCharacter && m_pCharacter->IsAlive())
+		m_pCharacter->MoveToWorld(GameServer()->GetWorld(WorldID));
 }
 
 void CPlayer::TryRespawn()

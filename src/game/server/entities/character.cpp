@@ -98,6 +98,14 @@ void CCharacter::Destroy()
 	m_Alive = false;
 }
 
+void CCharacter::MoveToWorld(CGameWorld *pWorld)
+{
+	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
+	CEntity::MoveToWorld(pWorld);
+	m_Core.Init(&pWorld->m_Core, pWorld->Collision());
+	pWorld->m_Core.m_apCharacters[m_pPlayer->GetCID()] = &m_Core;
+}
+
 void CCharacter::SetWeapon(int W)
 {
 	if(W == m_ActiveWeapon)

@@ -32,6 +32,13 @@ CEntity::~CEntity()
 	Server()->SnapFreeID(m_ID);
 }
 
+void CEntity::MoveToWorld(CGameWorld *pWorld)
+{
+	m_pGameWorld->RemoveEntity(this);
+	m_pGameWorld = pWorld;
+	m_pGameWorld->InsertEntity(this);
+}
+
 int CEntity::NetworkClipped(int SnappingClient)
 {
 	return NetworkClipped(SnappingClient, m_Pos);

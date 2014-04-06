@@ -113,6 +113,8 @@ public:
 	bool GameLayerClipped(vec2 CheckPos);
 	bool Active();
 
+	virtual void MoveToWorld(CGameWorld *pWorld);
+
 	/*
 		Variable: proximity_radius
 			Contains the physical size of the entity.

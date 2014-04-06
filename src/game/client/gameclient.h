@@ -46,7 +46,7 @@ class CGameClient : public IGameClient
 	class IFriends *m_pFriends;
 
 	CLayers m_Layers;
-	class CCollision m_aCollision[MAX_CLIENTS];
+	class CCollision m_aCollision[NUM_WORLDS];
 	CUI m_UI;
 
 	void DispatchInput();
@@ -89,7 +89,7 @@ public:
 
 	bool m_SuppressEvents;
 
-	bool m_aaSwitchStates[MAX_CLIENTS][255];
+	bool m_aaSwitchStates[NUM_WORLDS][255];
 
 	// TODO: move this
 	CTuningParams m_Tuning;

@@ -130,14 +130,14 @@ bool CGameController::OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, 
 			Dir.x = Flags&TILEFLAG_HFLIP ? -1.0 : 1.0;
 		else
 			Dir.y = Flags&TILEFLAG_VFLIP ? 1.0 : -1.0;
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		for(int i = 0; i < NUM_WORLDS; i++)
 			new CProjectile(GameServer()->GetWorld(i), WEAPON_SHOTGUN, -1, Pos, Dir, 0,0, false, 0, SOUND_GUN_FIRE, WEAPON_SHOTGUN, SwitchGroup, InvertSwitch, false);
 		break;
 	}
 
 	if(Type != -1)
 	{
-		for(int i = 0; i < MAX_CLIENTS; i++)
+		for(int i = 0; i < NUM_WORLDS; i++)
 		{
 			CPickup *pPickup = new CPickup(GameServer()->GetWorld(i), Type, SwitchGroup, InvertSwitch);
 			pPickup->m_Pos = Pos;
@@ -181,19 +181,19 @@ void CGameController::OnPlayerDisconnect(CPlayer *pPlayer)
 
 void CGameController::ResetWorlds()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		GameServer()->GetWorld(i)->m_ResetRequested = true;
 }
 
 void CGameController::PauseWorlds()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		GameServer()->GetWorld(i)->m_Paused = true;
 }
 
 void CGameController::UnpauseWorlds()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		GameServer()->GetWorld(i)->m_Paused = false;
 }
 
@@ -446,7 +446,7 @@ void CGameController::EvaluateSpawn(CSpawnEval *pEval, int WorldID) const
 // team
 void CGameController::DoTeamChange(CPlayer *pPlayer, int Team, bool DoChatMsg)
 {
-	if(Team == pPlayer->GetTeam())
+	if(Team == pPlayer->GetTeam() || Team == TEAM_BLUE)
 		return;
 
 	if(Team == TEAM_SPECTATORS)

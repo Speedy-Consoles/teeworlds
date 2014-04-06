@@ -98,7 +98,7 @@ void CGameContext::ResetPlayers(CGameWorld *pWorld)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(m_apPlayers[i] && &m_aWorlds[m_apPlayers[i]->WorldID()] == pWorld)
+		if(m_apPlayers[i] && m_apPlayers[i]->WorldID() != -1 && &m_aWorlds[m_apPlayers[i]->WorldID()] == pWorld)
 		{
 			m_apPlayers[i]->Respawn();
 			m_apPlayers[i]->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
@@ -476,7 +476,7 @@ void CGameContext::OnTick()
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		m_aWorlds[i].m_Core.m_Tuning = m_Tuning;
 
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		m_aWorlds[i].Tick();
 
 	//if(world.paused) // make sure that the game object always updates
@@ -590,7 +590,7 @@ void CGameContext::OnClientDirectInput(int ClientID, void *pInput)
 
 void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 {
-	if(!m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
+	if(m_apPlayers[ClientID]->WorldID() != -1 && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 	{
 		int NumCorrections = m_NetObjHandler.NumObjCorrections();
 		if(m_NetObjHandler.ValidateObj(NETOBJTYPE_PLAYERINPUT, pInput, sizeof(CNetObj_PlayerInput)) == 0)
@@ -689,6 +689,8 @@ void CGameContext::OnClientTeamChange(int ClientID)
 {
 	if(m_apPlayers[ClientID]->GetTeam() == TEAM_SPECTATORS)
 		AbortVoteOnTeamChange(ClientID);
+	else
+		m_apPlayers[ClientID]->ChangeWorld(DEFAULT_WORLDID);
 }
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
@@ -749,9 +751,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			const char *p = pMsg->m_pMessage;
 			const char *pEnd = 0;
 			if(p[0] == '+')
-				pPlayer->SetWorldID((pPlayer->WorldID()+1)%MAX_CLIENTS);
+			{
+				pPlayer->ChangeWorld((pPlayer->WorldID()+1)%NUM_WORLDS);
+			}
 			else if(p[0] == '-')
-				pPlayer->SetWorldID((pPlayer->WorldID()+15)%MAX_CLIENTS);
+			{
+				pPlayer->ChangeWorld((pPlayer->WorldID()+NUM_WORLDS-1)%NUM_WORLDS);
+			}
 			while(*p)
  			{
 				const char *pStrOld = p;
@@ -929,7 +935,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_TeamChangeTick = Server()->Tick()+Server()->TickSpeed()*3;
 			m_pController->DoTeamChange(pPlayer, pMsg->m_Team);
 		}
-		else if (MsgID == NETMSGTYPE_CL_SETSPECTATORMODE && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_SETSPECTATORMODE && !m_pController->IsGamePaused())
 		{
 			CNetMsg_Cl_SetSpectatorMode *pMsg = (CNetMsg_Cl_SetSpectatorMode *)pRawMsg;
 
@@ -940,7 +946,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if(!pPlayer->SetSpectatorID(pMsg->m_SpectatorID))
 				SendGameMsg(GAMEMSG_SPEC_INVALIDID, ClientID);
 		}
-		else if (MsgID == NETMSGTYPE_CL_EMOTICON && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_EMOTICON && m_apPlayers[ClientID]->WorldID() != -1 && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 		{
 			CNetMsg_Cl_Emoticon *pMsg = (CNetMsg_Cl_Emoticon *)pRawMsg;
 
@@ -953,7 +959,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			ExtendEmoticon(ClientID, pMsg->m_Emoticon);
 		}
-		else if (MsgID == NETMSGTYPE_CL_KILL && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
+		else if (MsgID == NETMSGTYPE_CL_KILL && m_apPlayers[ClientID]->WorldID() != -1 && !m_aWorlds[m_apPlayers[ClientID]->WorldID()].m_Paused)
 		{
 			if(pPlayer->m_LastKill && pPlayer->m_LastKill+Server()->TickSpeed()*3 > Server()->Tick())
 				return;
@@ -1394,7 +1400,7 @@ void CGameContext::OnInit()
 	// init everything
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		m_aWorlds[i].SetGameServer(this);
 
 	for(int i = 0; i < NUM_NETOBJTYPES; i++)
@@ -1402,7 +1408,7 @@ void CGameContext::OnInit()
 
 	m_Layers.Init(Kernel());
 	m_aWorlds[0].InitCollision(&m_Layers);
-	for(int i = 1; i < MAX_CLIENTS; i++)
+	for(int i = 1; i < NUM_WORLDS; i++)
 		m_aWorlds[i].InitCollision(m_aWorlds[0].Collision());
 
 	m_pController = new CGameController(this);
@@ -1455,7 +1461,7 @@ void CGameContext::OnSnap(int ClientID)
 		mem_copy(pTuneParams->m_aTuneParams, &m_Tuning, sizeof(pTuneParams->m_aTuneParams));
 	}
 
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		m_aWorlds[i].Snap(ClientID, i);
 	m_pController->Snap(ClientID);
 
@@ -1468,7 +1474,7 @@ void CGameContext::OnSnap(int ClientID)
 void CGameContext::OnPreSnap() {}
 void CGameContext::OnPostSnap()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < NUM_WORLDS; i++)
 		m_aWorlds[i].PostSnap();
 }
 

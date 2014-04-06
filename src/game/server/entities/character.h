@@ -23,6 +23,8 @@ public:
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient, int World);
 	virtual void PostSnap();
+	
+	virtual void MoveToWorld(CGameWorld *pWorld);
 
 	bool IsGrounded();
 

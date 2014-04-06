@@ -94,7 +94,7 @@ Objects = [
 		NetIntRange("m_Type", 0, 'NUM_WEAPONS-1'),
 		NetTick("m_StartTick"),
 
-		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
 		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
 	]),
 
@@ -106,7 +106,7 @@ Objects = [
 
 		NetTick("m_StartTick"),
 
-		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
 		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
 	]),
 
@@ -116,7 +116,7 @@ Objects = [
 
 		NetEnum("m_Type", Pickups),
 
-		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
 	]),
 
 	NetObject("Flag", [
@@ -125,7 +125,7 @@ Objects = [
 
 		NetIntRange("m_Team", 'TEAM_RED', 'TEAM_BLUE'),
 
-		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
 	]),
 
 	NetObject("GameData", [
@@ -177,7 +177,7 @@ Objects = [
 		NetTick("m_AttackTick"),
 		NetFlag("m_TriggeredEvents", CoreEventFlags),
 
-		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
 	]),
 
 	NetObject("PlayerInfo", [
@@ -228,7 +228,7 @@ Objects = [
 	NetEvent("Common", [
 		NetIntAny("m_X"),
 		NetIntAny("m_Y"),
-		NetIntRange("m_World", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
 		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
 	]),
 

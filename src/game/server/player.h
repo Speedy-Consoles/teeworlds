@@ -31,7 +31,7 @@ public:
 	int GetCID() const { return m_ClientID; };
 	bool IsDummy() const { return m_Dummy; }
 
-	void SetWorldID(int Team);
+	void ChangeWorld(int WorldID);
 	int WorldID() const { return m_WorldID; }
 
 	void Tick();
