@@ -73,7 +73,7 @@ public:
 
 	int RaceState() { return m_RaceState; }
 	void StartRace();
-	void CancelRace();
+	void OnPlayerDeath();
 	void OnFinish();
 
 	CGameWorld();

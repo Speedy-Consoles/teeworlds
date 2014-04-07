@@ -134,12 +134,30 @@ void CGameWorld::StartRace()
 	}
 }
 
-void CGameWorld::CancelRace()
+void CGameWorld::OnPlayerDeath()
 {
-	if(!m_Default && m_RaceState == RACESTATE_STARTED)
+	if(!m_Default)
 	{
-		m_RaceState = RACESTATE_CANCELED;
-		GameServer()->OnRaceCancel(this);
+		if(m_RaceState == RACESTATE_STARTED)
+		{
+			m_RaceState = RACESTATE_CANCELED;
+			GameServer()->OnRaceCancel(this);
+		}
+
+		bool AllStarting = true;
+		for(CEntity *pEnt = m_apFirstEntityTypes[ENTTYPE_CHARACTER]; pEnt; )
+		{
+			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+			if(((CCharacter *) pEnt)->IsAlive() && ((CCharacter *) pEnt)->RaceState() != RACESTATE_STARTING)
+			{
+				AllStarting = false;
+				break;
+			}
+			pEnt = m_pNextTraverseEntity;
+		}
+
+		if(AllStarting)
+			m_RaceState = RACESTATE_STARTING;
 	}
 }
 
