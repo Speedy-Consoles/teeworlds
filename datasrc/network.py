@@ -95,7 +95,7 @@ Objects = [
 		NetTick("m_StartTick"),
 
 		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1'),
 	]),
 
 	NetObject("Laser", [
@@ -107,7 +107,7 @@ Objects = [
 		NetTick("m_StartTick"),
 
 		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1'),
 	]),
 
 	NetObject("Pickup", [
@@ -229,7 +229,7 @@ Objects = [
 		NetIntAny("m_X"),
 		NetIntAny("m_Y"),
 		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-		NetIntRange("m_SoloClientID", 0, 'MAX_CLIENTS-1'),
+		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1'),
 	]),
 
 
