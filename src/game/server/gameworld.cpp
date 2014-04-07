@@ -27,7 +27,9 @@ CGameWorld::CGameWorld()
 		m_aSwitchTicks[i] = -1;
 	}
 	
-	m_RaceState = RACESTATE_OPEN;
+	m_RaceState = RACESTATE_STARTING;
+	m_RaceStartTick = -1;
+	m_Default = false;
 }
 
 CGameWorld::~CGameWorld()
@@ -122,6 +124,52 @@ void CGameWorld::SetSwitchState(bool State, int GroupID, int Duration)
 		m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
 }
 
+void CGameWorld::StartRace()
+{
+	if(!m_Default && m_RaceState == RACESTATE_STARTING)
+	{
+		m_RaceState = RACESTATE_STARTED;
+		m_RaceStartTick = Server()->Tick();
+		GameServer()->OnRaceStart(this);
+	}
+}
+
+void CGameWorld::CancelRace()
+{
+	if(!m_Default && m_RaceState == RACESTATE_STARTED)
+	{
+		m_RaceState = RACESTATE_CANCELED;
+		GameServer()->OnRaceCancel(this);
+	}
+}
+
+void CGameWorld::OnFinish()
+{
+	if(m_Default || m_RaceState != RACESTATE_STARTED)
+		return;
+
+	bool AllFinished = true;
+	for(CEntity *pEnt = m_apFirstEntityTypes[ENTTYPE_CHARACTER]; pEnt; )
+	{
+		m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+		if(((CCharacter *) pEnt)->RaceState() != RACESTATE_FINISHED)
+		{
+			AllFinished = false;
+			break;
+		}
+		pEnt = m_pNextTraverseEntity;
+	}
+	
+	int ms = (Server()->Tick() - m_RaceStartTick) * 1000 / (float) Server()->TickSpeed();
+	
+	if(AllFinished)
+	{
+		GameServer()->OnRaceFinish(this, ms);
+		m_RaceState = RACESTATE_FINISHED;
+	}
+	// TODO store finish time
+}
+
 //
 void CGameWorld::Snap(int SnappingClient, int WorldID)
 {
@@ -177,6 +225,8 @@ void CGameWorld::Reset(bool Soft)
 		m_aSwitchTicks[i] = -1;
 	}
 
+	if(!Soft)
+		m_RaceState = RACESTATE_STARTING;
 	m_ResetRequested = false;
 	m_SoftResetRequested = false;
 }
@@ -240,8 +290,10 @@ void CGameWorld::Tick()
 				m_SwitchStateChanged = true;
 		}
 	}
-	else if(GameServer()->m_pController->IsGamePaused())
+	else
 	{
+		++m_RaceStartTick;
+
 		// update all objects
 		for(int i = 0; i < NUM_ENTTYPES; i++)
 			for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )

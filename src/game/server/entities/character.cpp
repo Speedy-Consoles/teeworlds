@@ -70,6 +70,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_RaceStartTick = -1;
 	m_LastCheckpoint = -1;
 	m_LastCorrectCheckpoint = -1;
+	m_RaceState = CGameWorld::RACESTATE_STARTING;
 
 	m_pPlayer = pPlayer;
 	m_Pos = Pos;
@@ -675,9 +676,11 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 	int Checkpoint = Triggers.m_Checkpoint;
 	if(Checkpoint == 0)
 	{
+		GameWorld()->StartRace();
 		m_RaceStartTick = Server()->Tick();
 		m_LastCheckpoint = -1;
 		m_LastCorrectCheckpoint = -1;
+		m_RaceState = CGameWorld::RACESTATE_STARTED;
 	}
 	else if(Checkpoint >= 0 && Checkpoint - 1 != m_LastCheckpoint && m_RaceStartTick >= 0)
 	{
@@ -699,14 +702,12 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 		}
 		else if(Checkpoint - 2 > m_LastCorrectCheckpoint)
 		{
-			// TODO this should be only for vanilla
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "You missed checkpoint %d", m_LastCorrectCheckpoint + 1);
 			GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
 		}
 		else if(Checkpoint - 1 < m_LastCorrectCheckpoint)
 		{
-			// TODO this should be only for vanilla
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "Wrong direction!");
 			GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
@@ -721,26 +722,27 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 
 void CCharacter::OnFinish()
 {
+	m_RaceState = CGameWorld::RACESTATE_FINISHED;
+
 	int ms = (Server()->Tick() - m_RaceStartTick) * 1000 / (float) Server()->TickSpeed();
 
-	// TODO this should be only for vanilla
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "'%s' finished in %.2f seconds!", Server()->ClientName(m_pPlayer->GetCID()), ms / 1000.0);
 	GameServer()->SendChatOthers(aBuf, m_pPlayer->GetCID());
 	str_format(aBuf, sizeof(aBuf), "You finished in %.2f seconds!", ms / 1000.0);
 	GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
 
+	//TODO only team times
 	if(m_pPlayer->m_Score > ms || m_pPlayer->m_Score == -1)
 		m_pPlayer->m_Score = ms;
 
-	// TODO store finish time
+	GameWorld()->OnFinish();
 }
 
 void CCharacter::OnCheckpoint()
 {
 	float Time =  (Server()->Tick() - m_RaceStartTick) / (float) Server()->TickSpeed();
 
-	// TODO this should be only for vanilla
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "You reached Checkpoint %d in %.2f seconds.", m_LastCheckpoint, Time);
 	GameServer()->SendChatTarget(m_pPlayer->GetCID(), aBuf);
@@ -754,6 +756,7 @@ void CCharacter::TickPaused()
 	++m_DamageTakenTick;
 	++m_Ninja.m_ActivationTick;
 	++m_ReckoningTick;
+	++m_RaceStartTick;
 	if(m_LastAction != -1)
 		++m_LastAction;
 	if(m_aWeapons[m_ActiveWeapon].m_AmmoRegenStart > -1)
@@ -784,6 +787,9 @@ void CCharacter::Die(int Killer, int Weapon)
 	m_Alive = false;
 	m_pPlayer->m_RespawnTick = Server()->Tick()+Server()->TickSpeed()/2;
 	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+
+	if(GameWorld()->RaceState() == CGameWorld::RACESTATE_STARTED)
+		GameWorld()->CancelRace();
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",

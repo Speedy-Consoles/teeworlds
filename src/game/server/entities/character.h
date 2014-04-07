@@ -36,8 +36,7 @@ public:
 	void HandleNinja();
 	void HandleTriggers(CCollision::CTriggers Triggers);
 
-	void OnFinish();
-	void OnCheckpoint();
+	int RaceState() { return m_RaceState; }
 
 	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
 	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
@@ -69,6 +68,9 @@ public:
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
 private:
+	void OnFinish();
+	void OnCheckpoint();
+
 	// player controlling this character
 	class CPlayer *m_pPlayer;
 
@@ -121,6 +123,7 @@ private:
 	int m_RaceStartTick;
 	int m_LastCheckpoint;
 	int m_LastCorrectCheckpoint;
+	int m_RaceState;
 
 	int m_Health;
 	int m_Armor;

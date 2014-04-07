@@ -28,10 +28,13 @@ public:
 		ENTTYPE_CHARACTER,
 		NUM_ENTTYPES,
 
-		RACESTATE_OPEN = 0,
-		RACESTATE_PRIVATE,
+		RACESTATE_STARTING = 0,
 		RACESTATE_STARTED,
 		RACESTATE_FINISHED,
+		RACESTATE_CANCELED,
+		
+		TEAMMODE_OPEN = 0,
+		TEAMMODE_PRIVATE,
 	};
 
 private:
@@ -48,11 +51,13 @@ private:
 	class IServer *m_pServer;
 
 	int m_RaceState;
+	int m_RaceStartTick;
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CCollision *Collision() { return &m_Collision; }
 	class CEventHandler *Events() { return &m_Events; }
 	class IServer *Server() { return m_pServer; }
+	void SetDefault() { m_Default = true; }
 
 	bool m_ResetRequested;
 	bool m_SoftResetRequested;
@@ -62,10 +67,14 @@ public:
 	bool m_aSwitchStates[255];
 	int m_aSwitchTicks[255];
 	bool m_SwitchStateChanged;
+	bool m_Default;
 
 	void SetSwitchState(bool State, int GroupID, int Duration);
 
 	int RaceState() { return m_RaceState; }
+	void StartRace();
+	void CancelRace();
+	void OnFinish();
 
 	CGameWorld();
 	~CGameWorld();
