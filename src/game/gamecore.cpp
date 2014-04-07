@@ -217,7 +217,6 @@ void CCharacterCore::Tick(bool UseInput)
 		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0, CCollision::COLFLAG_SOLID_HOOK);
 		if(StartHit)
 		{
-			NewPos = m_HookPos;
 			if(StartHit&CCollision::COLFLAG_NOHOOK)
 				GoingToRetract = true;
 			else
@@ -269,7 +268,8 @@ void CCharacterCore::Tick(bool UseInput)
 				m_HookState = HOOK_RETRACT_START;
 			}
 
-			m_HookPos = NewPos;
+			if(!StartHit)
+				m_HookPos = NewPos;
 		}
 	}
 
