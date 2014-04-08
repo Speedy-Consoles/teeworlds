@@ -81,7 +81,7 @@ void CCharacterCore::Reset()
 void CCharacterCore::Tick(bool UseInput)
 {
 	float PhysSize = 28.0f;
-	bool ForceGrab = false;
+	int StartHit = 0;
 	m_TriggeredEvents = 0;
 
 	// get ground state
@@ -149,8 +149,8 @@ void CCharacterCore::Tick(bool UseInput)
 				m_HookState = HOOK_FLYING;
 				m_HookPos = m_Pos+TargetDirection*PhysSize*1.5f;
 				// dirty fix
-				if(m_pCollision->IntersectLine(m_Pos, m_HookPos, 0, 0, CCollision::COLFLAG_SOLID_HOOK))
-					ForceGrab = true;
+				if(m_pCollision->GetCollisionAt(m_HookPos)&&CCollision::COLFLAG_SOLID_HOOK)
+					StartHit = m_pCollision->IntersectLine(m_Pos, m_HookPos, 0, 0, CCollision::COLFLAG_SOLID_HOOK);
 				m_HookDir = TargetDirection;
 				m_HookedPlayer = -1;
 				m_HookTick = 0;
@@ -211,12 +211,10 @@ void CCharacterCore::Tick(bool UseInput)
 		bool GoingToHitGround = false;
 		bool GoingToRetract = false;
 		// dirty fix part two
-		int StartHit = 0;
-		if(ForceGrab)
-			StartHit = m_pCollision->GetCollisionAt(m_HookPos);
 		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0, CCollision::COLFLAG_SOLID_HOOK);
 		if(StartHit)
 		{
+			NewPos = m_HookPos;
 			if(StartHit&CCollision::COLFLAG_NOHOOK)
 				GoingToRetract = true;
 			else
@@ -268,8 +266,7 @@ void CCharacterCore::Tick(bool UseInput)
 				m_HookState = HOOK_RETRACT_START;
 			}
 
-			if(!StartHit)
-				m_HookPos = NewPos;
+			m_HookPos = NewPos;
 		}
 	}
 
