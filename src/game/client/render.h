@@ -25,8 +25,10 @@ enum
 
 	LAYERRENDERFLAG_OPAQUE = 1,
 	LAYERRENDERFLAG_TRANSPARENT = 2,
+	LAYERRENDERFLAG_NO_FLAGS=4,
+	LAYERRENDERFLAG_FLAGS_AS_INDEX=8,
 
-	TILERENDERFLAG_EXTEND = 4,
+	TILERENDERFLAG_EXTEND = 16,
 };
 
 class CTeeRenderInfo
@@ -78,14 +80,14 @@ public:
 	void RenderTilemapGenerateSkip(class CLayers *pLayers);
 
 	// object render methods (gc_render_obj.cpp)
-	void RenderTee(class CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos);
+	void RenderTee(class CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Opacity = 1.0f);
 	void RenderTeeHand(CTeeRenderInfo *pInfo, vec2 CenterPos, vec2 Dir, float AngleOffset,
-					   vec2 PostRotOffset);
+					   vec2 PostRotOffset, float Opacity = 1.0f);
 
 	// map render methods (gc_render_map.cpp)
 	static void RenderEvalEnvelope(CEnvPoint *pPoints, int NumPoints, int Channels, float Time, float *pResult);
 	void RenderQuads(CQuad *pQuads, int NumQuads, int Flags, ENVELOPE_EVAL pfnEval, void *pUser);
-	void RenderTilemap(CTile *pTiles, int w, int h, float Scale, vec4 Color, int RenderFlags, ENVELOPE_EVAL pfnEval, void *pUser, int ColorEnv, int ColorEnvOffset);
+	void RenderTilemap(CTile *pTiles, int w, int h, float Scale, vec4 Color, int RenderFlags, ENVELOPE_EVAL pfnEval, void *pUser, int ColorEnv, int ColorEnvOffset, bool *pSwitchStates);
 
 	// helpers
 	void MapScreenToWorld(float CenterX, float CenterY, float ParallaxX, float ParallaxY,

@@ -61,6 +61,8 @@ MACRO_CONFIG_INT(GfxFinish, gfx_finish, 1, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, ""
 MACRO_CONFIG_INT(GfxAsyncRender, gfx_asyncrender, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Do rendering async from the the update")
 MACRO_CONFIG_INT(GfxMaxFps, gfx_maxfps, 144, 30, 2000, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Maximum fps (when limit fps is enabled)")
 MACRO_CONFIG_INT(GfxLimitFps, gfx_limitfps, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Limit fps")
+MACRO_CONFIG_INT(GfxOtherWorldOpacity, gfx_other_world_opacity, 2, 0, 10, CFGFLAG_SAVE|CFGFLAG_CLIENT, "The opacity of other worlds' content")
+MACRO_CONFIG_INT(GfxSoloOpacity, gfx_solo_opacity, 4, 0, 10, CFGFLAG_SAVE|CFGFLAG_CLIENT, "The opacity of solo tees or everything when you are solo' content")
 
 MACRO_CONFIG_INT(InpGrab, inp_grab, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Disable OS mouse settings such as mouse acceleration, use raw mouse input mode")
 MACRO_CONFIG_INT(InpMousesens, inp_mousesens, 100, 5, 100000, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Mouse sensitivity")

@@ -10,12 +10,12 @@ const int PickupPhysSize = 14;
 class CPickup : public CEntity
 {
 public:
-	CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos);
+	CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, int SwitchGroup, bool InvertSwitch);
 
 	virtual void Reset();
 	virtual void Tick();
 	virtual void TickPaused();
-	virtual void Snap(int SnappingClient);
+	virtual void Snap(int SnappingClient, int World);
 
 private:
 	int m_Type;

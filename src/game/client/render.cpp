@@ -328,7 +328,7 @@ void CRenderTools::DrawUIRect4(const CUIRect *r, vec4 ColorTopLeft, vec4 ColorTo
 	Graphics()->QuadsEnd();
 }
 
-void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos)
+void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote, vec2 Dir, vec2 Pos, float Opacity)
 {
 	vec2 Direction = Dir;
 	vec2 Position = Pos;
@@ -355,7 +355,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 					Graphics()->TextureSet(pInfo->m_aTextures[2]);
 					Graphics()->QuadsBegin();
 					Graphics()->QuadsSetRotation(pAnim->GetBody()->m_Angle*pi*2);
-					Graphics()->SetColor(pInfo->m_aColors[SKINPART_DECORATION].r, pInfo->m_aColors[SKINPART_DECORATION].g, pInfo->m_aColors[SKINPART_DECORATION].b, pInfo->m_aColors[SKINPART_DECORATION].a);
+					Graphics()->SetColor(pInfo->m_aColors[SKINPART_DECORATION].r, pInfo->m_aColors[SKINPART_DECORATION].g, pInfo->m_aColors[SKINPART_DECORATION].b, pInfo->m_aColors[SKINPART_DECORATION].a * Opacity);
 					SelectSprite(OutLine?SPRITE_TEE_DECORATION_OUTLINE:SPRITE_TEE_DECORATION, 0, 0, 0);
 					Item = BodyItem;
 					Graphics()->QuadsDraw(&Item, 1);
@@ -368,12 +368,12 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 				Graphics()->QuadsSetRotation(pAnim->GetBody()->m_Angle*pi*2);
 				if(OutLine)
 				{
-					Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+					Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
 					SelectSprite(SPRITE_TEE_BODY_OUTLINE, 0, 0, 0);
 				}
 				else
 				{
-					Graphics()->SetColor(pInfo->m_aColors[SKINPART_BODY].r, pInfo->m_aColors[SKINPART_BODY].g, pInfo->m_aColors[SKINPART_BODY].b, pInfo->m_aColors[SKINPART_BODY].a);
+					Graphics()->SetColor(pInfo->m_aColors[SKINPART_BODY].r, pInfo->m_aColors[SKINPART_BODY].g, pInfo->m_aColors[SKINPART_BODY].b, pInfo->m_aColors[SKINPART_BODY].a * Opacity);
 					SelectSprite(SPRITE_TEE_BODY, 0, 0, 0);
 				}
 				Item = BodyItem;
@@ -387,7 +387,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 					Graphics()->QuadsBegin();
 					Graphics()->QuadsSetRotation(pAnim->GetBody()->m_Angle*pi*2);
 					Graphics()->SetColor(pInfo->m_aColors[SKINPART_MARKING].r*pInfo->m_aColors[SKINPART_MARKING].a, pInfo->m_aColors[SKINPART_MARKING].g*pInfo->m_aColors[SKINPART_MARKING].a,
-						pInfo->m_aColors[SKINPART_MARKING].b*pInfo->m_aColors[SKINPART_MARKING].a, pInfo->m_aColors[SKINPART_MARKING].a);
+						pInfo->m_aColors[SKINPART_MARKING].b*pInfo->m_aColors[SKINPART_MARKING].a, pInfo->m_aColors[SKINPART_MARKING].a * Opacity);
 					SelectSprite(SPRITE_TEE_MARKING, 0, 0, 0);
 					Item = BodyItem;
 					Graphics()->QuadsDraw(&Item, 1);
@@ -400,7 +400,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 					Graphics()->TextureSet(pInfo->m_aTextures[SKINPART_BODY]);
 					Graphics()->QuadsBegin();
 					Graphics()->QuadsSetRotation(pAnim->GetBody()->m_Angle*pi*2);
-					Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+					Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
 					for(int t = 0; t < 2; t++)
 					{
 						SelectSprite(t==0?SPRITE_TEE_BODY_SHADOW:SPRITE_TEE_BODY_UPPER_OUTLINE, 0, 0, 0);
@@ -414,7 +414,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 				Graphics()->TextureSet(pInfo->m_aTextures[SKINPART_EYES]);
 				Graphics()->QuadsBegin();
 				Graphics()->QuadsSetRotation(pAnim->GetBody()->m_Angle*pi*2);
-				Graphics()->SetColor(pInfo->m_aColors[SKINPART_EYES].r, pInfo->m_aColors[SKINPART_EYES].g, pInfo->m_aColors[SKINPART_EYES].b, pInfo->m_aColors[SKINPART_EYES].a);
+				Graphics()->SetColor(pInfo->m_aColors[SKINPART_EYES].r, pInfo->m_aColors[SKINPART_EYES].g, pInfo->m_aColors[SKINPART_EYES].b, pInfo->m_aColors[SKINPART_EYES].a * Opacity);
 				if(p == 1)
 				{
 					switch (Emote)
@@ -484,7 +484,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 
 			if(OutLine)
 			{
-				Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+				Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
 				SelectSprite(SPRITE_TEE_FOOT_OUTLINE, 0, 0, 0);
 			}
 			else
@@ -493,7 +493,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 				float cs = 1.0f; // color scale
 				if(Indicate)
 					cs = 0.5f;
-				Graphics()->SetColor(pInfo->m_aColors[SKINPART_FEET].r*cs, pInfo->m_aColors[SKINPART_FEET].g*cs, pInfo->m_aColors[SKINPART_FEET].b*cs, pInfo->m_aColors[SKINPART_FEET].a);
+				Graphics()->SetColor(pInfo->m_aColors[SKINPART_FEET].r*cs, pInfo->m_aColors[SKINPART_FEET].g*cs, pInfo->m_aColors[SKINPART_FEET].b*cs, pInfo->m_aColors[SKINPART_FEET].a * Opacity);
 				SelectSprite(SPRITE_TEE_FOOT, 0, 0, 0);
 			}
 
@@ -505,7 +505,7 @@ void CRenderTools::RenderTee(CAnimState *pAnim, CTeeRenderInfo *pInfo, int Emote
 }
 
 void CRenderTools::RenderTeeHand(CTeeRenderInfo *pInfo, vec2 CenterPos, vec2 Dir, float AngleOffset,
-								 vec2 PostRotOffset)
+								 vec2 PostRotOffset, float Opacity)
 {
 	// in-game hand size is 15 when tee size is 64
 	float BaseSize = 15.0f * (pInfo->m_Size / 64.0f);
@@ -532,7 +532,7 @@ void CRenderTools::RenderTeeHand(CTeeRenderInfo *pInfo, vec2 CenterPos, vec2 Dir
 
 	Graphics()->TextureSet(pInfo->m_aTextures[SKINPART_HANDS]);
 	Graphics()->QuadsBegin();
-	Graphics()->SetColor(Color.r, Color.g, Color.b, Color.a);
+	Graphics()->SetColor(Color.r, Color.g, Color.b, Color.a * Opacity);
 	Graphics()->QuadsSetRotation(Angle);
 
 	SelectSprite(SPRITE_TEE_HAND_OUTLINE, 0, 0, 0);

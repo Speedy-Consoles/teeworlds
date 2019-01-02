@@ -7,10 +7,11 @@
 #include "character.h"
 #include "pickup.h"
 
-CPickup::CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos, PickupPhysSize)
+CPickup::CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, int SwitchGroup, bool InvertSwitch)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos, PickupPhysSize, SwitchGroup, InvertSwitch)
 {
 	m_Type = Type;
+	m_Persistent = false;
 
 	Reset();
 
@@ -36,94 +37,112 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == PICKUP_GRENADE || m_Type == PICKUP_SHOTGUN || m_Type == PICKUP_LASER)
-				GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SPAWN);
+				CGameContext::CreateSound(Events(), m_Pos, SOUND_WEAPON_SPAWN);
 		}
 		else
 			return;
 	}
-	// Check if a player intersected us
-	CCharacter *pChr = (CCharacter *)GameServer()->m_World.ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0);
-	if(pChr && pChr->IsAlive())
+
+	if(Active())
 	{
-		// player picked us up, is someone was hooking us, let them go
-		bool Picked = false;
-		switch (m_Type)
-		{
-			case PICKUP_HEALTH:
-				if(pChr->IncreaseHealth(1))
+		// Check if a player intersected us
+		CCharacter *pChr;
+		if(m_Type == PICKUP_HEALTH || m_Type == PICKUP_ARMOR) // TODO DDRace or not ddrace
+			pChr = (CCharacter *)GameWorld()->ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0);
+		else
+			pChr = (CCharacter *)GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER);
+
+		for(; pChr; pChr = (CCharacter *)pChr->TypeNext())
+	 	{
+			if(pChr && pChr->IsAlive() && distance(m_Pos, pChr->GetPos()) < pChr->GetProximityRadius()+20.0f)
+			{
+				// player picked us up, is someone was hooking us, let them go
+				bool Picked = false;
+				switch (m_Type)
 				{
-					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
-				}
-				break;
+					case PICKUP_HEALTH:
+						if(pChr->IncreaseHealth(1))
+						{
+							Picked = true;
+							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_HEALTH);
+						}
+						break;
 
-			case PICKUP_ARMOR:
-				if(pChr->IncreaseArmor(1))
+					case PICKUP_ARMOR:
+						if(pChr->IncreaseArmor(1))
+						{
+							Picked = true;
+							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_ARMOR);
+						}
+						break;
+
+					case PICKUP_GRENADE:
+						// TODO DDRace if ddrace give -1
+						if(pChr->GiveWeapon(WEAPON_GRENADE, g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Maxammo))
+						{
+							Picked = true;
+							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_GRENADE);
+							if(pChr->GetPlayer())
+								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_GRENADE);
+						}
+						break;
+					case PICKUP_SHOTGUN:
+						// TODO DDRace if ddrace give -1
+						if(pChr->GiveWeapon(WEAPON_SHOTGUN, g_pData->m_Weapons.m_aId[WEAPON_SHOTGUN].m_Maxammo))
+						{
+							Picked = true;
+							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
+							if(pChr->GetPlayer())
+								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_SHOTGUN);
+						}
+						break;
+					case PICKUP_LASER:
+						// TODO DDRace if ddrace give -1
+						if(pChr->GiveWeapon(WEAPON_LASER, g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Maxammo))
+						{
+							Picked = true;
+							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
+							if(pChr->GetPlayer())
+								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_LASER);
+						}
+						break;
+
+					case PICKUP_NINJA:
+						{
+							Picked = true;
+							// activate ninja on target player
+							pChr->GiveNinja();
+
+							// loop through all players, setting their emotes
+							CCharacter *pC = static_cast<CCharacter *>(GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+							for(; pC; pC = (CCharacter *)pC->TypeNext())
+							{
+								if (pC != pChr)
+									pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
+							}
+
+							pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
+							break;
+						}
+
+					default:
+						break;
+				};
+
+				if(Picked)
 				{
-					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR);
+					char aBuf[256];
+					str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d",
+						pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type);
+					GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+					int RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+					if(RespawnTime >= 0)
+						m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
 				}
+			}
+
+			if(m_Type == PICKUP_HEALTH || m_Type == PICKUP_ARMOR) // TODO DDRace or not ddrace
 				break;
-
-			case PICKUP_GRENADE:
-				if(pChr->GiveWeapon(WEAPON_GRENADE, g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Maxammo))
-				{
-					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE);
-					if(pChr->GetPlayer())
-						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_GRENADE);
-				}
-				break;
-			case PICKUP_SHOTGUN:
-				if(pChr->GiveWeapon(WEAPON_SHOTGUN, g_pData->m_Weapons.m_aId[WEAPON_SHOTGUN].m_Maxammo))
-				{
-					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
-					if(pChr->GetPlayer())
-						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_SHOTGUN);
-				}
-				break;
-			case PICKUP_LASER:
-				if(pChr->GiveWeapon(WEAPON_LASER, g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Maxammo))
-				{
-					Picked = true;
-					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
-					if(pChr->GetPlayer())
-						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_LASER);
-				}
-				break;
-
-			case PICKUP_NINJA:
-				{
-					Picked = true;
-					// activate ninja on target player
-					pChr->GiveNinja();
-
-					// loop through all players, setting their emotes
-					CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
-					for(; pC; pC = (CCharacter *)pC->TypeNext())
-					{
-						if (pC != pChr)
-							pC->SetEmote(EMOTE_SURPRISE, Server()->Tick() + Server()->TickSpeed());
-					}
-
-					pChr->SetEmote(EMOTE_ANGRY, Server()->Tick() + 1200 * Server()->TickSpeed() / 1000);
-					break;
-				}
-
-			default:
-				break;
-		};
-
-		if(Picked)
-		{
-			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "pickup player='%d:%s' item=%d",
-				pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type);
-			GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-			int RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-			if(RespawnTime >= 0)
-				m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
 		}
 	}
 }
@@ -134,9 +153,9 @@ void CPickup::TickPaused()
 		++m_SpawnTick;
 }
 
-void CPickup::Snap(int SnappingClient)
+void CPickup::Snap(int SnappingClient, int World)
 {
-	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient))
+	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient) || !Active())
 		return;
 
 	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), sizeof(CNetObj_Pickup)));
@@ -146,4 +165,5 @@ void CPickup::Snap(int SnappingClient)
 	pP->m_X = (int)m_Pos.x;
 	pP->m_Y = (int)m_Pos.y;
 	pP->m_Type = m_Type;
+	pP->m_World = World;
 }

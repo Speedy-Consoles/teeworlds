@@ -145,6 +145,7 @@ public:
 
 class CLayer;
 class CLayerGroup;
+class CLayerGame;
 class CEditorMap;
 
 class CLayer
@@ -178,6 +179,19 @@ public:
 	virtual void BrushFlipX() {}
 	virtual void BrushFlipY() {}
 	virtual void BrushRotate(float Amount) {}
+
+	virtual void BrushToggleSwitch() {}
+	virtual void BrushSetSwitchGroup(int sg) {}
+	virtual void BrushIncreaseSwitchGroup() {}
+	virtual void BrushDecreaseSwitchGroup() {}
+	virtual void BrushSetSwitchDuration(int duration) {}
+	virtual void BrushIncreaseSwitchDuration() {}
+	virtual void BrushDecreaseSwitchDuration() {}
+
+	virtual void BrushToggleTeleIO() {}
+	virtual void BrushToggleTeleCutOwn() {}
+	virtual void BrushToggleTeleCutOther() {}
+	virtual void BrushToggleTeleResetVel() {}
 
 	virtual void Render() {}
 	virtual int RenderProperties(CUIRect *pToolbox) { return 0; }
@@ -291,7 +305,7 @@ public:
 class CEditorMap
 {
 	void MakeGameGroup(CLayerGroup *pGroup);
-	void MakeGameLayer(CLayer *pLayer);
+	void MakeGameLayers(CLayerGame *apGameLayers[NUM_GAMELAYERTYPES]);
 public:
 	CEditor *m_pEditor;
 	bool m_Modified;
@@ -324,7 +338,8 @@ public:
 	CMapInfo m_MapInfo;
 	CMapInfo m_MapInfoTmp;
 
-	class CLayerGame *m_pGameLayer;
+	bool IsGameLayer(CLayer *pLayer) const { for(int t = 0; t < NUM_GAMELAYERTYPES; t++) if(pLayer == (CLayer *)m_apGameLayers[t]) return true; return false; }
+	class CLayerGame *m_apGameLayers[NUM_GAMELAYERTYPES];
 	CLayerGroup *m_pGameGroup;
 
 	CEnvelope *NewEnvelope(int Channels)
@@ -383,6 +398,7 @@ public:
 
 	// io
 	int Save(class IStorage *pStorage, const char *pFilename);
+	void WriteVanillaLayer(CDataFileWriter* pDataFileWriter, CLayerTiles* pCollisionLayer, int* pLayerCount);
 	int Load(class IStorage *pStorage, const char *pFilename, int StorageType);
 };
 
@@ -424,7 +440,8 @@ public:
 	void Shift(int Direction);
 
 	void MakePalette();
-	virtual void Render();
+	virtual void Render() { Render(false); }
+	virtual void Render(bool TileSetPicker);
 
 	int ConvertX(float x) const;
 	int ConvertY(float y) const;
@@ -440,6 +457,19 @@ public:
 	virtual void BrushFlipY();
 	virtual void BrushRotate(float Amount);
 
+	virtual void BrushToggleSwitch();
+	virtual void BrushSetSwitchGroup(int sg);
+	virtual void BrushIncreaseSwitchGroup();
+	virtual void BrushDecreaseSwitchGroup();
+	virtual void BrushSetSwitchDuration(int duration);
+	virtual void BrushIncreaseSwitchDuration();
+	virtual void BrushDecreaseSwitchDuration();
+
+	virtual void BrushToggleTeleIO();
+	virtual void BrushToggleTeleCutOwn();
+	virtual void BrushToggleTeleCutOther();
+	virtual void BrushToggleTeleResetVel();
+
 	virtual void ShowInfo();
 	virtual int RenderProperties(CUIRect *pToolbox);
 
@@ -452,7 +482,9 @@ public:
 	void GetSize(float *w, float *h) const { *w = m_Width*32.0f; *h = m_Height*32.0f; }
 
 	IGraphics::CTextureHandle m_Texture;
+	IGraphics::CTextureHandle m_AltTexture;
 	int m_Game;
+	int m_GameLayerType;
 	int m_Image;
 	int m_Width;
 	int m_Height;
@@ -482,6 +514,19 @@ public:
 	virtual void BrushFlipY();
 	virtual void BrushRotate(float Amount);
 
+	virtual void BrushToggleSwitch();
+	virtual void BrushSetSwitchGroup(int sg);
+	virtual void BrushIncreaseSwitchGroup();
+	virtual void BrushDecreaseSwitchGroup();
+	virtual void BrushSetSwitchDuration(int duration);
+	virtual void BrushIncreaseSwitchDuration();
+	virtual void BrushDecreaseSwitchDuration();
+
+	virtual void BrushToggleTeleIO();
+	virtual void BrushToggleTeleCutOwn();
+	virtual void BrushToggleTeleCutOther();
+	virtual void BrushToggleTeleResetVel();
+
 	virtual int RenderProperties(CUIRect *pToolbox);
 
 	virtual void ModifyImageIndex(INDEX_MODIFY_FUNC pfnFunc);
@@ -493,10 +538,12 @@ public:
 	array<CQuad> m_lQuads;
 };
 
+extern const char *const s_apGameLayerTypeNames[];
+
 class CLayerGame : public CLayerTiles
 {
 public:
-	CLayerGame(int w, int h);
+	CLayerGame(int w, int h, int Type);
 	~CLayerGame();
 
 	virtual int RenderProperties(CUIRect *pToolbox);
@@ -742,7 +789,8 @@ public:
 	IGraphics::CTextureHandle m_CheckerTexture;
 	IGraphics::CTextureHandle m_BackgroundTexture;
 	IGraphics::CTextureHandle m_CursorTexture;
-	IGraphics::CTextureHandle m_EntitiesTexture;
+	IGraphics::CTextureHandle m_aEntitiesTexture[NUM_GAMELAYERTYPES];
+	IGraphics::CTextureHandle m_aAltEntitiesTexture[NUM_GAMELAYERTYPES];
 
 	CLayerGroup m_Brush;
 	CLayerTiles m_TilesetPicker;

@@ -46,11 +46,11 @@ class CGameClient : public IGameClient
 	class IFriends *m_pFriends;
 
 	CLayers m_Layers;
-	class CCollision m_Collision;
+	class CCollision m_aCollision[NUM_WORLDS];
 	CUI m_UI;
 
 	void ProcessEvents();
-	void ProcessTriggeredEvents(int Events, vec2 Pos);
+	void ProcessTriggeredEvents(int Events, vec2 Pos, int WorldID, bool Solo);
 	void UpdatePositions();
 
 	int m_PredictedTick;
@@ -59,6 +59,9 @@ class CGameClient : public IGameClient
 	static void ConTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
 	static void ConReadyChange(IConsole::IResult *pResult, void *pUserData);
+	static void ConNewRaceTeam(IConsole::IResult *pResult, void *pUserData);
+	static void ConJoinRaceTeam(IConsole::IResult *pResult, void *pUserData);
+	static void ConLeaveRaceTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainFriendUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainXmasHatUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
@@ -80,7 +83,7 @@ public:
 	class IServerBrowser *ServerBrowser() const { return m_pServerBrowser; }
 	class CRenderTools *RenderTools() { return &m_RenderTools; }
 	class CLayers *Layers() { return &m_Layers; };
-	class CCollision *Collision() { return &m_Collision; };
+	class CCollision *GetDDRTeamCollision(int DDRTeam) { return &m_aCollision[DDRTeam]; };
 	class IEditor *Editor() { return m_pEditor; }
 	class IFriends *Friends() { return m_pFriends; }
 
@@ -89,6 +92,8 @@ public:
 	const char *NetmsgFailedOn() { return m_NetObjHandler.FailedMsgOn(); };
 
 	bool m_SuppressEvents;
+
+	bool m_aaSwitchStates[NUM_WORLDS][255];
 
 	// TODO: move this
 	CTuningParams m_Tuning;
@@ -128,6 +133,7 @@ public:
 		const CNetObj_GameData *m_pGameData;
 		const CNetObj_GameDataTeam *m_pGameDataTeam;
 		const CNetObj_GameDataFlag *m_pGameDataFlag;
+		const CNetObj_SwitchStates *m_pSwitchStates;
 		int m_GameDataFlagSnapID;
 
 		int m_NotReadyCount;
@@ -193,6 +199,7 @@ public:
 
 	CClientData m_aClients[MAX_CLIENTS];
 	int m_LocalClientID;
+	int m_LocalWorldID;
 	int m_TeamCooldownTick;
 	bool m_MuteServerBroadcast;
 	float m_TeamChangeTime;
@@ -265,6 +272,9 @@ public:
 	void SendStartInfo();
 	void SendKill();
 	void SendReadyChange();
+	void SendNewRaceTeam();
+	void SendJoinRaceTeam(int ClientID);
+	void SendLeaveRaceTeam();
 
 	// pointers to all systems
 	class CGameConsole *m_pGameConsole;

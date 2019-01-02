@@ -4,9 +4,12 @@
 #define GAME_SERVER_GAMEWORLD_H
 
 #include <game/gamecore.h>
+#include "eventhandler.h"
 
 class CEntity;
 class CCharacter;
+
+typedef bool (*FnCountCharacter)(CCharacter *character, void *UserData);
 
 /*
 	Class: Game World
@@ -23,29 +26,61 @@ public:
 		ENTTYPE_PICKUP,
 		ENTTYPE_CHARACTER,
 		ENTTYPE_FLAG,
-		NUM_ENTTYPES
+		NUM_ENTTYPES,
+
+		RACESTATE_STARTING = 0,
+		RACESTATE_STARTED,
+		RACESTATE_FINISHED,
+		RACESTATE_CANCELED,
+		
+		TEAMMODE_OPEN = 0,
+		TEAMMODE_PRIVATE,
 	};
 
 private:
-	void Reset();
+	void Reset(bool Soft);
 	void RemoveEntities();
 
 	CEntity *m_pNextTraverseEntity;
 	CEntity *m_apFirstEntityTypes[NUM_ENTTYPES];
 
 	class CGameContext *m_pGameServer;
+	class CCollision m_Collision;
+	class CEventHandler m_Events;
+
 	class IServer *m_pServer;
 
+	int m_RaceState;
+	int m_RaceStartTick;
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
+	class CCollision *Collision() { return &m_Collision; }
+	class CEventHandler *Events() { return &m_Events; }
 	class IServer *Server() { return m_pServer; }
+	void SetDefault() { m_Default = true; }
 
 	bool m_ResetRequested;
+	bool m_SoftResetRequested;
 	bool m_Paused;
 	CWorldCore m_Core;
+	bool m_aNextSwitchStates[255];
+	bool m_aSwitchStates[255];
+	int m_aSwitchTicks[255];
+	bool m_SwitchStateChanged;
+	bool m_Default;
+
+	void SetSwitchState(bool State, int GroupID, int Duration);
+
+	int RaceState() { return m_RaceState; }
+	void StartRace();
+	void OnPlayerDeath();
+	void OnFinish();
 
 	CGameWorld();
 	~CGameWorld();
+
+	void InitCollision(class CLayers *pLayers) { m_Collision.Init(pLayers, m_aSwitchStates); }
+	void InitCollision(class CCollision *pOther) { m_Collision.Init(pOther, m_aSwitchStates); }
 
 	void SetGameServer(CGameContext *pGameServer);
 
@@ -92,12 +127,12 @@ public:
 			pos2 - End position
 			radius - How for from the line the CCharacter is allowed to be.
 			new_pos - Intersection position
-			notthis - Entity to ignore intersecting with
+			pfnHitCharacterCB - Callback that decides if the character will count
 
 		Returns:
 			Returns a pointer to the closest hit or NULL of there is no intersection.
 	*/
-	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, class CEntity *pNotThis = 0);
+	class CCharacter *IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, FnCountCharacter pfnCountCharacterCB, void *pUserData);
 
 	/*
 		Function: insert_entity
@@ -134,8 +169,9 @@ public:
 		Arguments:
 			snapping_client - ID of the client which snapshot
 			is being created.
+			world_id - ID that this world should be identified with
 	*/
-	void Snap(int SnappingClient);
+	void Snap(int SnappingClient, int WorldID);
 	
 	void PostSnap();
 

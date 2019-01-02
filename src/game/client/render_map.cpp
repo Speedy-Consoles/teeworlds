@@ -331,7 +331,7 @@ void CRenderTools::RenderQuads(CQuad *pQuads, int NumQuads, int RenderFlags, ENV
 }
 
 void CRenderTools::RenderTilemap(CTile *pTiles, int w, int h, float Scale, vec4 Color, int RenderFlags,
-									ENVELOPE_EVAL pfnEval, void *pUser, int ColorEnv, int ColorEnvOffset)
+									ENVELOPE_EVAL pfnEval, void *pUser, int ColorEnv, int ColorEnvOffset, bool *pSwitchStates)
 {
 	float ScreenX0, ScreenY0, ScreenX1, ScreenY1;
 	Graphics()->GetScreen(&ScreenX0, &ScreenY0, &ScreenX1, &ScreenY1);
@@ -392,20 +392,36 @@ void CRenderTools::RenderTilemap(CTile *pTiles, int w, int h, float Scale, vec4 
 			{
 				unsigned char Flags = pTiles[c].m_Flags;
 
-				bool Render = false;
-				if(Flags&TILEFLAG_OPAQUE && Color.a*a > 254.0f/255.0f)
-				{
-					if(RenderFlags&LAYERRENDERFLAG_OPAQUE)
-						Render = true;
-				}
+				int SwitchGroup = pTiles[c].m_Reserved - 1;
+				bool Invert = pTiles[c].m_Flags&TILEFLAG_INVERT_SWITCH;
+				bool Switch;
+				if(!pSwitchStates || SwitchGroup == -1)
+					Switch = Invert;
 				else
+					Switch = pSwitchStates[SwitchGroup];
+
+				bool Render = false;
+				if(Switch == Invert)
 				{
-					if(RenderFlags&LAYERRENDERFLAG_TRANSPARENT)
+					if(RenderFlags&LAYERRENDERFLAG_NO_FLAGS)
 						Render = true;
+					else if(Flags&TILEFLAG_OPAQUE && Color.a*a > 254.0f/255.0f)
+					{
+						if(RenderFlags&LAYERRENDERFLAG_OPAQUE)
+							Render = true;
+					}
+					else
+					{
+						if(RenderFlags&LAYERRENDERFLAG_TRANSPARENT)
+							Render = true;
+					}
 				}
 
 				if(Render)
 				{
+					if(RenderFlags&LAYERRENDERFLAG_FLAGS_AS_INDEX)
+						Index = Flags;
+
 					float x0 = 0;
 					float y0 = 0;
 					float x1 = 1;
@@ -415,34 +431,37 @@ void CRenderTools::RenderTilemap(CTile *pTiles, int w, int h, float Scale, vec4 
 					float x3 = 0;
 					float y3 = 1;
 
-					if(Flags&TILEFLAG_VFLIP)
+					if(!(RenderFlags&LAYERRENDERFLAG_NO_FLAGS))
 					{
-						x0 = x2;
-						x1 = x3;
-						x2 = x3;
-						x3 = x0;
-					}
+						if(Flags&TILEFLAG_VFLIP)
+						{
+							x0 = x2;
+							x1 = x3;
+							x2 = x3;
+							x3 = x0;
+						}
 
-					if(Flags&TILEFLAG_HFLIP)
-					{
-						y0 = y3;
-						y2 = y1;
-						y3 = y1;
-						y1 = y0;
-					}
+						if(Flags&TILEFLAG_HFLIP)
+						{
+							y0 = y3;
+							y2 = y1;
+							y3 = y1;
+							y1 = y0;
+						}
 
-					if(Flags&TILEFLAG_ROTATE)
-					{
-						float Tmp = x0;
-						x0 = x3;
-						x3 = x2;
-						x2 = x1;
-						x1 = Tmp;
-						Tmp = y0;
-						y0 = y3;
-						y3 = y2;
-						y2 = y1;
-						y1 = Tmp;
+						if(Flags&TILEFLAG_ROTATE)
+						{
+							float Tmp = x0;
+							x0 = x3;
+							x3 = x2;
+							x2 = x1;
+							x1 = Tmp;
+							Tmp = y0;
+							y0 = y3;
+							y3 = y2;
+							y2 = y1;
+							y1 = Tmp;
+	 					}
 					}
 
 					Graphics()->QuadsSetSubsetFree(x0, y0, x1, y1, x2, y2, x3, y3, Index);

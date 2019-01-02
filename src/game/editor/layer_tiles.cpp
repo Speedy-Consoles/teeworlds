@@ -12,7 +12,7 @@
 #include <game/client/localization.h>
 #include <game/client/render.h>
 #include "editor.h"
-
+#include <typeinfo>
 
 CLayerTiles::CLayerTiles(int w, int h)
 {
@@ -22,6 +22,7 @@ CLayerTiles::CLayerTiles(int w, int h)
 	m_Height = h;
 	m_Image = -1;
 	m_Game = 0;
+	m_GameLayerType = 0;
 	m_Color.r = 255;
 	m_Color.g = 255;
 	m_Color.b = 255;
@@ -50,13 +51,14 @@ CLayerTiles::~CLayerTiles()
 
 void CLayerTiles::PrepareForSave()
 {
-	for(int y = 0; y < m_Height; y++)
-		for(int x = 0; x < m_Width; x++)
-		{
-			m_pTiles[y*m_Width+x].m_Flags &= TILEFLAG_VFLIP|TILEFLAG_HFLIP|TILEFLAG_ROTATE;
-			if(m_pTiles[y*m_Width+x].m_Index == 0)
-				m_pTiles[y*m_Width+x].m_Flags = 0;
-		}
+	if(!m_Game) // TODO why?
+		for(int y = 0; y < m_Height; y++)
+			for(int x = 0; x < m_Width; x++)
+			{
+				m_pTiles[y*m_Width+x].m_Flags &= TILEFLAG_VFLIP|TILEFLAG_HFLIP|TILEFLAG_ROTATE;
+				if(m_pTiles[y*m_Width+x].m_Index == 0)
+					m_pTiles[y*m_Width+x].m_Flags = 0;
+			}
 
 	if(m_Image != -1 && m_Color.a == 255)
 	{
@@ -152,18 +154,99 @@ void CLayerTiles::MakePalette()
 			m_pTiles[y*m_Width+x].m_Index = y*16+x;
 }
 
-void CLayerTiles::Render()
+void CLayerTiles::Render(bool TileSetPicker)
 {
 	if(m_Image >= 0 && m_Image < m_pEditor->m_Map.m_lImages.size())
 		m_Texture = m_pEditor->m_Map.m_lImages[m_Image]->m_Texture;
-	Graphics()->TextureSet(m_Texture);
 	vec4 Color = vec4(m_Color.r/255.0f, m_Color.g/255.0f, m_Color.b/255.0f, m_Color.a/255.0f);
-	Graphics()->BlendNone();
-	m_pEditor->RenderTools()->RenderTilemap(m_pTiles, m_Width, m_Height, 32.0f, Color, LAYERRENDERFLAG_OPAQUE,
-												m_pEditor->EnvelopeEval, m_pEditor, m_ColorEnv, m_ColorEnvOffset);
-	Graphics()->BlendNormal();
-	m_pEditor->RenderTools()->RenderTilemap(m_pTiles, m_Width, m_Height, 32.0f, Color, LAYERRENDERFLAG_TRANSPARENT,
-												m_pEditor->EnvelopeEval, m_pEditor, m_ColorEnv, m_ColorEnvOffset);
+	if(m_GameLayerType == GAMELAYERTYPE_SWITCH || m_GameLayerType == GAMELAYERTYPE_TELE)
+	{
+		int Flags = LAYERRENDERFLAG_NO_FLAGS;
+		if(TileSetPicker)
+			Graphics()->TextureSet(m_Texture);
+		else
+		{
+			Graphics()->TextureSet(m_AltTexture);
+			Flags |= LAYERRENDERFLAG_FLAGS_AS_INDEX;
+		}	
+		Graphics()->BlendNormal();
+		m_pEditor->RenderTools()->RenderTilemap(m_pTiles, m_Width, m_Height, 32.0f, Color, Flags,
+							m_pEditor->EnvelopeEval, m_pEditor, m_ColorEnv, m_ColorEnvOffset, 0);
+
+		float ScreenX0, ScreenY0, ScreenX1, ScreenY1;
+		Graphics()->GetScreen(&ScreenX0, &ScreenY0, &ScreenX1, &ScreenY1);
+		Graphics()->TextureSet(m_pEditor->Client()->GetDebugFont());
+		Graphics()->QuadsBegin();
+
+
+		int StartY = max(0, (int)(ScreenY0/32.0f)-1);
+		int StartX = max(0, (int)(ScreenX0/32.0f)-1);
+		int EndY = min((int)(ScreenY1/32.0f)+1, m_Height);
+		int EndX = min((int)(ScreenX1/32.0f)+1, m_Width);
+
+		for(int y = StartY; y < EndY; y++)
+			for(int x = StartX; x < EndX; x++)
+			{
+				int c = x + y*m_Width;
+				if(m_pTiles[c].m_Index)
+				{
+					char aBuf[64];
+					str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Index);
+					m_pEditor->Graphics()->QuadsText(x*32+10, y*32+10, 12.0f, aBuf);
+					if(m_GameLayerType == GAMELAYERTYPE_SWITCH && m_pTiles[c].m_Reserved > 0)
+					{
+						str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Reserved-1);
+						m_pEditor->Graphics()->QuadsText(x*32+18, y*32+22, 12.0f, aBuf);
+					}
+				}
+				x += m_pTiles[c].m_Skip;
+			}
+
+		Graphics()->QuadsEnd();
+		Graphics()->MapScreen(ScreenX0, ScreenY0, ScreenX1, ScreenY1);
+	}
+	else
+	{
+		Graphics()->TextureSet(m_Texture);
+
+		Graphics()->BlendNone();
+		m_pEditor->RenderTools()->RenderTilemap(m_pTiles, m_Width, m_Height, 32.0f, Color, LAYERRENDERFLAG_OPAQUE,
+							m_pEditor->EnvelopeEval, m_pEditor, m_ColorEnv, m_ColorEnvOffset, 0);
+		Graphics()->BlendNormal();
+		m_pEditor->RenderTools()->RenderTilemap(m_pTiles, m_Width, m_Height, 32.0f, Color, LAYERRENDERFLAG_TRANSPARENT,
+							m_pEditor->EnvelopeEval, m_pEditor, m_ColorEnv, m_ColorEnvOffset, 0);
+
+		float ScreenX0, ScreenY0, ScreenX1, ScreenY1;
+		Graphics()->GetScreen(&ScreenX0, &ScreenY0, &ScreenX1, &ScreenY1);
+		Graphics()->TextureSet(m_pEditor->Client()->GetDebugFont());
+		Graphics()->QuadsBegin();
+
+
+		int StartY = max(0, (int)(ScreenY0/32.0f)-1);
+		int StartX = max(0, (int)(ScreenX0/32.0f)-1);
+		int EndY = min((int)(ScreenY1/32.0f)+1, m_Height);
+		int EndX = min((int)(ScreenX1/32.0f)+1, m_Width);
+
+		for(int y = StartY; y < EndY; y++)
+			for(int x = StartX; x < EndX; x++)
+			{
+				int c = x + y*m_Width;
+				if(m_pTiles[c].m_Index && m_pTiles[c].m_Reserved > 0)
+				{
+					if(m_pTiles[c].m_Flags&TILEFLAG_INVERT_SWITCH)
+						Graphics()->SetColor(1.0f, 0.2f, 0.2f, 1.0f);
+					else
+						Graphics()->SetColor(0.2f, 1.0f, 0.2f, 1.0f);
+					char aBuf[64];
+					str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Reserved);
+					m_pEditor->Graphics()->QuadsText(x*32, y*32+17, 15.0f, aBuf);
+				}
+				x += m_pTiles[c].m_Skip;
+			}
+
+		Graphics()->QuadsEnd();
+		Graphics()->MapScreen(ScreenX0, ScreenY0, ScreenX1, ScreenY1);
+	}
 }
 
 int CLayerTiles::ConvertX(float x) const { return (int)(x/32.0f); }
@@ -320,10 +403,15 @@ void CLayerTiles::BrushFlipX()
 			m_pTiles[y*m_Width+m_Width-1-x] = Tmp;
 		}
 
-	if(!m_Game)
+	for(int y = 0; y < m_Height; y++)
+		for(int x = 0; x < m_Width; x++)
+			if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
+				m_pTiles[y*m_Width+x].m_Flags ^= m_pTiles[y*m_Width+x].m_Flags&TILEFLAG_ROTATE ? TILEFLAG_HFLIP : TILEFLAG_VFLIP;
+
+	if(m_GameLayerType == GAMELAYERTYPE_HSPEEDUP)
 		for(int y = 0; y < m_Height; y++)
 			for(int x = 0; x < m_Width; x++)
-				m_pTiles[y*m_Width+x].m_Flags ^= m_pTiles[y*m_Width+x].m_Flags&TILEFLAG_ROTATE ? TILEFLAG_HFLIP : TILEFLAG_VFLIP;
+				m_pTiles[y*m_Width+x].m_Flags ^= SPEEDUPFLAG_FLIP;
 }
 
 void CLayerTiles::BrushFlipY()
@@ -336,21 +424,28 @@ void CLayerTiles::BrushFlipY()
 			m_pTiles[(m_Height-1-y)*m_Width+x] = Tmp;
 		}
 
-	if(!m_Game)
+	for(int y = 0; y < m_Height; y++)
+		for(int x = 0; x < m_Width; x++)
+			if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
+				m_pTiles[y*m_Width+x].m_Flags ^= m_pTiles[y*m_Width+x].m_Flags&TILEFLAG_ROTATE ? TILEFLAG_VFLIP : TILEFLAG_HFLIP;
+
+	if(m_GameLayerType == GAMELAYERTYPE_VSPEEDUP)
 		for(int y = 0; y < m_Height; y++)
 			for(int x = 0; x < m_Width; x++)
-				m_pTiles[y*m_Width+x].m_Flags ^= m_pTiles[y*m_Width+x].m_Flags&TILEFLAG_ROTATE ? TILEFLAG_VFLIP : TILEFLAG_HFLIP;
+				m_pTiles[y*m_Width+x].m_Flags ^= SPEEDUPFLAG_FLIP;
+
+	dbg_msg("dbg", "%d", m_pTiles[0].m_Flags);
 }
 
 void CLayerTiles::BrushRotate(float Amount)
 {
-	int Rotation = (round_to_int(360.0f*Amount/(pi*2))/90)%4;	// 0=0째, 1=90째, 2=180째, 3=270째
+	int Rotation = (round_to_int(360.0f*Amount/(pi*2))/90)%4;	// 0=0\B0, 1=90\B0, 2=180\B0, 3=270\B0
 	if(Rotation < 0)
 		Rotation +=4;
 
 	if(Rotation == 1 || Rotation == 3)
 	{
-		// 90째 rotation
+		// 90� rotation
 		CTile *pTempData = new CTile[m_Width*m_Height];
 		mem_copy(pTempData, m_pTiles, m_Width*m_Height*sizeof(CTile));
 		CTile *pDst = m_pTiles;
@@ -358,7 +453,7 @@ void CLayerTiles::BrushRotate(float Amount)
 			for(int y = m_Height-1; y >= 0; --y, ++pDst)
 			{
 				*pDst = pTempData[y*m_Width+x];
-				if(!m_Game)
+				if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION || m_GameLayerType == GAMELAYERTYPE_HSPEEDUP || m_GameLayerType == GAMELAYERTYPE_VSPEEDUP)
 				{
 					if(pDst->m_Flags&TILEFLAG_ROTATE)
 						pDst->m_Flags ^= (TILEFLAG_HFLIP|TILEFLAG_VFLIP);
@@ -377,6 +472,112 @@ void CLayerTiles::BrushRotate(float Amount)
 		BrushFlipX();
 		BrushFlipY();
 	}
+}
+
+void CLayerTiles::BrushToggleSwitch()
+{
+	if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Flags ^= TILEFLAG_INVERT_SWITCH;
+	else if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Flags ^= TILEFLAG_SWITCH_ON;
+}
+
+void CLayerTiles::BrushSetSwitchGroup(int sg)
+{
+	if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Reserved = sg;
+	else if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Index = sg;
+}
+
+void CLayerTiles::BrushIncreaseSwitchGroup()
+{
+	if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Reserved = min(m_pTiles[y*m_Width+x].m_Reserved + 1, 255);
+	else if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				if(m_pTiles[y*m_Width+x].m_Index)
+					m_pTiles[y*m_Width+x].m_Index = min(m_pTiles[y*m_Width+x].m_Index + 1, 255);
+}
+
+void CLayerTiles::BrushDecreaseSwitchGroup()
+{
+	if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Reserved = max(m_pTiles[y*m_Width+x].m_Reserved - 1, 0);
+	else if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Index = max(m_pTiles[y*m_Width+x].m_Index - 1, min((int)m_pTiles[y*m_Width+x].m_Index, 1));
+}
+
+void CLayerTiles::BrushSetSwitchDuration(int duration)
+{
+	if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Reserved = duration + 1;
+}
+
+void CLayerTiles::BrushIncreaseSwitchDuration()
+{
+	if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				if(m_pTiles[y*m_Width+x].m_Index)
+					m_pTiles[y*m_Width+x].m_Reserved = min(m_pTiles[y*m_Width+x].m_Reserved + 1, 255);
+}
+
+void CLayerTiles::BrushDecreaseSwitchDuration()
+{
+	if(m_GameLayerType == GAMELAYERTYPE_SWITCH)
+		for(int x = 0; x < m_Width; x++)
+			for(int y = 0; y < m_Height; y++)
+				m_pTiles[y*m_Width+x].m_Reserved = max(m_pTiles[y*m_Width+x].m_Reserved - 1, 0);
+}
+
+void CLayerTiles::BrushToggleTeleIO()
+{
+	if(m_GameLayerType == GAMELAYERTYPE_TELE)
+		for(int y = 0; y < m_Height; y++)
+			for(int x = 0; x < m_Width; ++x)
+				m_pTiles[y*m_Width+x].m_Flags ^= TELEFLAG_IN;
+}
+
+void CLayerTiles::BrushToggleTeleCutOwn()
+{
+	if(m_GameLayerType == GAMELAYERTYPE_TELE)
+		for(int y = 0; y < m_Height; y++)
+			for(int x = 0; x < m_Width; ++x)
+				m_pTiles[y*m_Width+x].m_Flags ^= TELEFLAG_CUT_OWN;
+}
+
+void CLayerTiles::BrushToggleTeleCutOther()
+{
+	if(m_GameLayerType == GAMELAYERTYPE_TELE)
+		for(int y = 0; y < m_Height; y++)
+			for(int x = 0; x < m_Width; ++x)
+				m_pTiles[y*m_Width+x].m_Flags ^= TELEFLAG_CUT_OTHER;
+}
+
+void CLayerTiles::BrushToggleTeleResetVel()
+{
+	if(m_GameLayerType == GAMELAYERTYPE_TELE)
+		for(int y = 0; y < m_Height; y++)
+			for(int x = 0; x < m_Width; ++x)
+				m_pTiles[y*m_Width+x].m_Flags ^= TELEFLAG_RESET_VEL;
 }
 
 void CLayerTiles::Resize(int NewW, int NewH)
@@ -431,6 +632,9 @@ void CLayerTiles::Shift(int Direction)
 
 void CLayerTiles::ShowInfo()
 {
+	if(m_GameLayerType == GAMELAYERTYPE_SWITCH || m_GameLayerType == GAMELAYERTYPE_TELE)
+		return;
+
 	float ScreenX0, ScreenY0, ScreenX1, ScreenY1;
 	Graphics()->GetScreen(&ScreenX0, &ScreenY0, &ScreenX1, &ScreenY1);
 	Graphics()->TextureSet(m_pEditor->Client()->GetDebugFont());
@@ -469,7 +673,7 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 	CUIRect Button;
 
 	bool InGameGroup = !find_linear(m_pEditor->m_Map.m_pGameGroup->m_lLayers.all(), this).empty();
-	if(m_pEditor->m_Map.m_pGameLayer != this)
+	if(!m_pEditor->m_Map.IsGameLayer(this))
 	{
 		if(m_Image >= 0 && m_Image < m_pEditor->m_Map.m_lImages.size() && m_pEditor->m_Map.m_lImages[m_Image]->m_pAutoMapper)
 		{
@@ -505,7 +709,7 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 		int Result = m_pEditor->PopupSelectGameTileOpResult();
 		if(Result > -1)
 		{
-			CLayerTiles *gl = m_pEditor->m_Map.m_pGameLayer;
+			CLayerTiles *gl = m_pEditor->m_Map.m_apGameLayers[GAMELAYERTYPE_COLLISION];
 			int w = min(gl->m_Width, m_Width);
 			int h = min(gl->m_Height, m_Height);
 			for(int y = 0; y < h; y++)
@@ -546,7 +750,7 @@ int CLayerTiles::RenderProperties(CUIRect *pToolBox)
 		{0},
 	};
 
-	if(m_pEditor->m_Map.m_pGameLayer == this) // remove the image and color properties if this is the game layer
+	if(m_pEditor->m_Map.IsGameLayer(this)) // remove the image and color properties if this is the game layer
 	{
 		aProps[3].m_pName = 0;
 		aProps[4].m_pName = 0;

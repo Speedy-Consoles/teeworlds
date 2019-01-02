@@ -22,6 +22,9 @@ struct CParticle
 		m_Color = vec4(1,1,1,1);
 	}
 
+	int m_WorldID;
+	bool m_Solo;
+
 	vec2 m_Pos;
 	vec2 m_Vel;
 

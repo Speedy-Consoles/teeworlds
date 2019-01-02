@@ -52,6 +52,14 @@ void CPlayers::RenderHook(
 
 	CTeeRenderInfo RenderInfo = m_aRenderInfo[ClientID];
 
+	float Opacity;
+	if(Player.m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_SOLO))
+		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+	else
+		Opacity = 1.0f;
+
 	float IntraTick = Client()->IntraGameTick();
 
 	// set size
@@ -81,6 +89,7 @@ void CPlayers::RenderHook(
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 		Graphics()->QuadsBegin();
+		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
 		//Graphics()->QuadsBegin();
 
 		vec2 Pos = Position;
@@ -134,7 +143,7 @@ void CPlayers::RenderHook(
 		Graphics()->QuadsSetRotation(0);
 		Graphics()->QuadsEnd();
 
-		RenderTools()->RenderTeeHand(&RenderInfo, Position, normalize(HookPos-Pos), -pi/2, vec2(20, 0));
+		RenderTools()->RenderTeeHand(&RenderInfo, Position, normalize(HookPos-Pos), -pi/2, vec2(20, 0), Opacity);
 	}
 }
 
@@ -153,6 +162,18 @@ void CPlayers::RenderPlayer(
 
 	CNetObj_PlayerInfo pInfo = *pPlayerInfo;
 	CTeeRenderInfo RenderInfo = m_aRenderInfo[ClientID];
+
+	float Opacity;
+	bool Solo = false;
+	if(Player.m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
+	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_SOLO))
+	{
+		Solo = true;
+		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
+	}
+	else
+		Opacity = 1.0f;
 
 	// set size
 	RenderInfo.m_Size = 64.0f;
@@ -220,7 +241,7 @@ void CPlayers::RenderPlayer(
 	RenderInfo.m_GotAirJump = Player.m_Jumped&2?0:1;
 
 	bool Stationary = Player.m_VelX <= 1 && Player.m_VelX >= -1;
-	bool InAir = !Collision()->CheckPoint(Player.m_X, Player.m_Y+16);
+	bool InAir = !(GetDDRTeamCollision(Player.m_World)->GetCollisionMove(Player.m_X, Player.m_Y+16, Player.m_X, Player.m_Y+14)&CCollision::COLFLAG_SOLID);
 	bool WantOtherDir = (Player.m_Direction == -1 && Vel.x > 0) || (Player.m_Direction == 1 && Vel.x < 0);
 
 	// evaluate animation
@@ -233,7 +254,9 @@ void CPlayers::RenderPlayer(
 	CAnimState State;
 	State.Set(&g_pData->m_aAnimations[ANIM_BASE], 0);
 
-	if(InAir)
+	if(Player.m_FreezeTick != 0)
+		State.Add(&g_pData->m_aAnimations[ANIM_IDLE], 0, 1.0f); // TODO: some sort of time here
+	else if(InAir)
 		State.Add(&g_pData->m_aAnimations[ANIM_INAIR], 0, 1.0f); // TODO: some sort of time here
 	else if(Stationary)
 		State.Add(&g_pData->m_aAnimations[ANIM_IDLE], 0, 1.0f); // TODO: some sort of time here
@@ -258,7 +281,7 @@ void CPlayers::RenderPlayer(
 	if(!InAir && WantOtherDir && length(Vel*50) > 500.0f)
 	{
 		static int64 SkidSoundTime = 0;
-		if(time_get()-SkidSoundTime > time_freq()/10)
+		if(time_get()-SkidSoundTime > time_freq()/10 && m_pClient->m_LocalWorldID == Player.m_World && !Solo)
 		{
 			m_pClient->m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_PLAYER_SKID, 0.25f, Position);
 			SkidSoundTime = time_get();
@@ -266,14 +289,18 @@ void CPlayers::RenderPlayer(
 
 		m_pClient->m_pEffects->SkidTrail(
 			Position+vec2(-Player.m_Direction*6,12),
-			vec2(-Player.m_Direction*100*length(Vel),-50)
+			vec2(-Player.m_Direction*100*length(Vel),-50),
+			Player.m_World,
+			Solo
 		);
 	}
 
 	// draw gun
+	if(Player.m_FreezeTick == 0)
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 		Graphics()->QuadsBegin();
+		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
 		Graphics()->QuadsSetRotation(State.GetAttach()->m_Angle*pi*2+Angle);
 
 		// normal weapons
@@ -418,9 +445,9 @@ void CPlayers::RenderPlayer(
 
 		switch (Player.m_Weapon)
 		{
-			case WEAPON_GUN: RenderTools()->RenderTeeHand(&RenderInfo, p, Direction, -3*pi/4, vec2(-15, 4)); break;
-			case WEAPON_SHOTGUN: RenderTools()->RenderTeeHand(&RenderInfo, p, Direction, -pi/2, vec2(-5, 4)); break;
-			case WEAPON_GRENADE: RenderTools()->RenderTeeHand(&RenderInfo, p, Direction, -pi/2, vec2(-4, 7)); break;
+			case WEAPON_GUN: RenderTools()->RenderTeeHand(&RenderInfo, p, Direction, -3*pi/4, vec2(-15, 4), Opacity); break;
+			case WEAPON_SHOTGUN: RenderTools()->RenderTeeHand(&RenderInfo, p, Direction, -pi/2, vec2(-5, 4), Opacity); break;
+			case WEAPON_GRENADE: RenderTools()->RenderTeeHand(&RenderInfo, p, Direction, -pi/2, vec2(-4, 7), Opacity); break;
 		}
 
 	}
@@ -435,12 +462,66 @@ void CPlayers::RenderPlayer(
 		RenderTools()->RenderTee(&State, &Ghost, Player.m_Emote, Direction, GhostPosition); // render ghost
 	}
 
-	RenderTools()->RenderTee(&State, &RenderInfo, Player.m_Emote, Direction, Position);
+	// freeze fading
+	{
+		int Tick = Client()->GameTick();
+		float IntraTick = Client()->IntraGameTick();
+		float FadeSpeed = 0.1f * (Tick - m_aFreezeFadeTick[ClientID] + IntraTick - m_aFreezeFadeIntraTick[ClientID]);
+		m_aFreezeFadeTick[ClientID] = Tick;
+		m_aFreezeFadeIntraTick[ClientID] = IntraTick;
+		float FadeTarget;
+		if(Player.m_FreezeTick == 0)
+			FadeTarget = 0.0f;
+		else if(Player.m_FreezeTick > 0)
+			FadeTarget = ((float) Player.m_FreezeTick) / (m_pClient->m_Tuning.m_FreezeTime * SERVER_TICK_SPEED);
+		else
+			FadeTarget = 1.0f;
+
+		if(FadeSpeed < fabs(m_aFreezeFadeState[ClientID] - FadeTarget))
+		{
+			if(m_aFreezeFadeState[ClientID] > FadeTarget)
+				m_aFreezeFadeState[ClientID] -= FadeSpeed;
+			else if(m_aFreezeFadeState[ClientID] < FadeTarget)
+				m_aFreezeFadeState[ClientID] += FadeSpeed;
+		}
+		else
+			m_aFreezeFadeState[ClientID] = FadeTarget;
+	}
+
+	// color tee
+	if(m_aFreezeFadeState[ClientID] > 0.0f)
+	{
+		float Factor = m_aFreezeFadeState[ClientID];
+		for(int p = 0; p < NUM_SKINPARTS; p++)
+		{
+			RenderInfo.m_aColors[p].r *= 1.0f - Factor;
+			RenderInfo.m_aColors[p].r += 0.75f * Factor;
+			RenderInfo.m_aColors[p].g *= 1.0f - Factor;
+			RenderInfo.m_aColors[p].g += 0.85f * Factor;
+			RenderInfo.m_aColors[p].b *= 1.0f - Factor;
+			RenderInfo.m_aColors[p].b += 1.0f * Factor;
+		}
+	}
+
+	RenderTools()->RenderTee(&State, &RenderInfo, Player.m_Emote, Direction, Position, Opacity);
+
+	// draw ice block
+	if(m_aFreezeFadeState[ClientID] > 0.0f)
+	{
+		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_FREEZE].m_Id);
+		Graphics()->QuadsBegin();
+		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 0.8f * m_aFreezeFadeState[ClientID] * Opacity);
+
+		RenderTools()->SelectSprite(SPRITE_FROZEN);
+		RenderTools()->DrawSprite(Position.x, Position.y - 5, 72.0f);
+		Graphics()->QuadsEnd();
+	}
 
 	if(pInfo.m_PlayerFlags&PLAYERFLAG_CHATTING)
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_EMOTICONS].m_Id);
 		Graphics()->QuadsBegin();
+		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
 		RenderTools()->SelectSprite(SPRITE_DOTDOT);
 		IGraphics::CQuadItem QuadItem(Position.x + 24, Position.y - 40, 64,64);
 		Graphics()->QuadsDraw(&QuadItem, 1);
@@ -472,7 +553,7 @@ void CPlayers::RenderPlayer(
 
 		Graphics()->QuadsSetRotation(pi/6*WiggleAngle);
 
-		Graphics()->SetColor(1.0f * a, 1.0f * a, 1.0f * a, a);
+		Graphics()->SetColor(1.0f * a, 1.0f * a, 1.0f * a, a * Opacity);
 		// client_datas::emoticon is an offset from the first emoticon
 		RenderTools()->SelectSprite(SPRITE_OOP + m_pClient->m_aClients[ClientID].m_Emoticon);
 		IGraphics::CQuadItem QuadItem(Position.x, Position.y - 23 - 32*h, 64, 64*h);
@@ -519,13 +600,17 @@ void CPlayers::OnRender()
 	}
 
 	// render other players in two passes, first pass we render the other, second pass we render our self
-	for(int p = 0; p < 4; p++)
+	for(int p = 0; p < 6; p++)
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
 			// only render active characters
 			if(!m_pClient->m_Snap.m_aCharacters[i].m_Active)
+			{
+				m_aFreezeFadeState[i] = 0.0f;
+				m_aFreezeFadeTick[i] =  0.0f;
 				continue;
+			}
 
 			const void *pPrevInfo = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_PLAYERINFO, i);
 			const void *pInfo = Client()->SnapFindItem(IClient::SNAP_CURRENT, NETOBJTYPE_PLAYERINFO, i);
@@ -534,13 +619,22 @@ void CPlayers::OnRender()
 			{
 				//
 				bool Local = m_pClient->m_LocalClientID == i;
-				if((p % 2) == 0 && Local) continue;
-				if((p % 2) == 1 && !Local) continue;
+				bool Opaque = Local || (m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_World == m_pClient->m_LocalWorldID && !(m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_Flags&COREFLAG_SOLO));
+				if(p < 2)
+				{
+					if(Opaque) continue;
+				}
+				else
+				{
+					if(!Opaque) continue;
+					if((p % 2) == 0 && Local) continue;
+					if((p % 2) == 1 && !Local) continue;
+				}
 
 				CNetObj_Character PrevChar = m_pClient->m_Snap.m_aCharacters[i].m_Prev;
 				CNetObj_Character CurChar = m_pClient->m_Snap.m_aCharacters[i].m_Cur;
 
-				if(p<2)
+				if(p < 4 && p != 1)
 					RenderHook(
 							&PrevChar,
 							&CurChar,

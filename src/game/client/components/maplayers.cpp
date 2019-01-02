@@ -284,10 +284,18 @@ void CMapLayers::OnRender()
 			bool Render = false;
 			bool IsGameLayer = false;
 
-			if(pLayer == (CMapItemLayer*)pLayers->GameLayer())
-			{
+			if(pLayer == (CMapItemLayer*)pLayers->VanillaLayer())
 				IsGameLayer = true;
-				PassedGameLayer = 1;
+			else
+			{
+				for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
+				{
+					if(pLayer == (CMapItemLayer*)pLayers->GameLayer(t))
+					{
+						IsGameLayer = true;
+						PassedGameLayer = 1;
+					}
+				}
 			}
 
 			// skip rendering if detail layers if not wanted
@@ -343,10 +351,10 @@ void CMapLayers::OnRender()
 					Graphics()->BlendNone();
 					vec4 Color = vec4(pTMap->m_Color.r/255.0f, pTMap->m_Color.g/255.0f, pTMap->m_Color.b/255.0f, pTMap->m_Color.a/255.0f);
 					RenderTools()->RenderTilemap(pTiles, pTMap->m_Width, pTMap->m_Height, 32.0f, Color, TILERENDERFLAG_EXTEND|LAYERRENDERFLAG_OPAQUE,
-													EnvelopeEval, this, pTMap->m_ColorEnv, pTMap->m_ColorEnvOffset);
+													EnvelopeEval, this, pTMap->m_ColorEnv, pTMap->m_ColorEnvOffset, m_pClient->m_aaSwitchStates[m_pClient->m_LocalWorldID]);
 					Graphics()->BlendNormal();
 					RenderTools()->RenderTilemap(pTiles, pTMap->m_Width, pTMap->m_Height, 32.0f, Color, TILERENDERFLAG_EXTEND|LAYERRENDERFLAG_TRANSPARENT,
-													EnvelopeEval, this, pTMap->m_ColorEnv, pTMap->m_ColorEnvOffset);
+													EnvelopeEval, this, pTMap->m_ColorEnv, pTMap->m_ColorEnvOffset, m_pClient->m_aaSwitchStates[m_pClient->m_LocalWorldID]);
 				}
 				else if(pLayer->m_Type == LAYERTYPE_QUADS)
 				{

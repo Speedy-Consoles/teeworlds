@@ -117,7 +117,7 @@ void CLayerGroup::Render()
 
 	for(int i = 0; i < m_lLayers.size(); i++)
 	{
-		if(m_lLayers[i]->m_Visible && m_lLayers[i] != m_pMap->m_pGameLayer)
+		if(m_lLayers[i]->m_Visible && !m_pMap->IsGameLayer(m_lLayers[i]))
 		{
 			if(m_pMap->m_pEditor->m_ShowDetail || !(m_lLayers[i]->m_Flags&LAYERFLAG_DETAIL))
 				m_lLayers[i]->Render();
@@ -1129,6 +1129,130 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 		RenderTools()->DrawUIRect(&Button, m_SelectedColor, 0, 0.0f);
 	}
 
+	// switch brush manipulation
+	{
+		int Enabled = m_Brush.IsEmpty()?-1:0;
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		static int s_SwitchButton = 0;
+		if(DoButton_Ex(&s_SwitchButton, "TS", Enabled, &Button, 0, "[D] Toggle switch", CUI::CORNER_ALL) || Input()->KeyPress(KEY_D))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushToggleSwitch();
+		}
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_Bottom.VSplitLeft(30.0f, &Button, &TB_Bottom);
+		
+		static int s_SwitchGroup = 1;
+		s_SwitchGroup = UiDoValueSelector(&s_SwitchGroup, &Button, "", s_SwitchGroup, 1, 255, 1, 10.0f, "Set the switch group. Use left mouse button to drag and change the value. Hold shift to be more precise.");
+
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+
+		static int s_SetSwitchGroup = 0;
+		if(DoButton_Ex(&s_SetSwitchGroup, "SG", Enabled, &Button, 0, "[F] Set switch group", CUI::CORNER_ALL) || Input()->KeyPress(KEY_F))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushSetSwitchGroup(s_SwitchGroup);
+		}
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+
+		static int s_IncreaseSwitchGroup = 0;
+		if(DoButton_Ex(&s_IncreaseSwitchGroup, "+SG", Enabled, &Button, 0, "[G] Increase switch group", CUI::CORNER_L) || Input()->KeyPress(KEY_G))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushIncreaseSwitchGroup();
+		}
+
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+
+		static int s_DecreaseSwitchGroup = 0;
+		if(DoButton_Ex(&s_DecreaseSwitchGroup, "-SG", Enabled, &Button, 0, "[B] Decrease switch group", CUI::CORNER_R) || Input()->KeyPress(KEY_B))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushDecreaseSwitchGroup();
+		}
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_Bottom.VSplitLeft(30.0f, &Button, &TB_Bottom);
+		
+		static int s_SwitchDuration = -1;
+		s_SwitchDuration = UiDoValueSelector(&s_SwitchDuration, &Button, "", s_SwitchDuration, -1, 254, 1, 10.0f, "Set the switch duration (seconds). Use left mouse button to drag and change the value. Hold shift to be more precise.");
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+
+		static int s_SetSwitchDuration = 0;
+		if(DoButton_Ex(&s_SetSwitchDuration, "SD", Enabled, &Button, 0, "[Q] Set switch duration", CUI::CORNER_ALL) || Input()->KeyPress(KEY_Q))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushSetSwitchDuration(s_SwitchDuration);
+		}
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+
+		static int s_IncreaseSwitchDuration = 0;
+		if(DoButton_Ex(&s_IncreaseSwitchDuration, "+SD", Enabled, &Button, 0, "[W] Increase switch group", CUI::CORNER_L) || Input()->KeyPress(KEY_W))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushIncreaseSwitchDuration();
+		}
+
+		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+
+		static int s_DecreaseSwitchDuration = 0;
+		if(DoButton_Ex(&s_DecreaseSwitchDuration, "-SD", Enabled, &Button, 0, "[E] Decrease switch group", CUI::CORNER_R) || Input()->KeyPress(KEY_E))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushDecreaseSwitchDuration();
+		}
+	}
+	// tele brush manipulation
+	{
+		int Enabled = m_Brush.IsEmpty()?-1:0;
+
+		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+
+		TB_Bottom.VSplitLeft(25.0f, &Button, &TB_Bottom);
+		static int s_InOutButton = 0;
+		if(DoButton_Ex(&s_InOutButton, "I/O", Enabled, &Button, 0, "[Z] Toggle teleporter in/out", CUI::CORNER_L) || Input()->KeyPress(KEY_Z))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushToggleTeleIO();
+		}
+
+		TB_Bottom.VSplitLeft(55.0f, &Button, &TB_Bottom);
+		static int s_CutOwnButton = 0;
+		if(DoButton_Ex(&s_CutOwnButton, "Cut own", Enabled, &Button, 0, "[X] Toggle teleporter cut own hook", 0) || Input()->KeyPress(KEY_X))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushToggleTeleCutOwn();
+		}
+
+		TB_Bottom.VSplitLeft(60.0f, &Button, &TB_Bottom);
+		static int s_CutOtherButton = 0;
+		if(DoButton_Ex(&s_CutOtherButton, "Cut other", Enabled, &Button, 0, "[C] Toggle teleporter cut other's hook", 0) || Input()->KeyPress(KEY_C))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushToggleTeleCutOther();
+		}
+
+		TB_Bottom.VSplitLeft(80.0f, &Button, &TB_Bottom);
+		static int s_ResetVelButton = 0;
+		if(DoButton_Ex(&s_ResetVelButton, "Reset velocity", Enabled, &Button, 0, "[V] Toggle teleporter reset velocity", CUI::CORNER_R) || Input()->KeyPress(KEY_V))
+		{
+			for(int i = 0; i < m_Brush.m_lLayers.size(); i++)
+				m_Brush.m_lLayers[i]->BrushToggleTeleResetVel();
+		}
+	}
+
 }
 
 static void Rotate(const CPoint *pCenter, CPoint *pPoint, float Rotation)
@@ -1789,11 +1913,17 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 			//UI()->ClipEnable(&view);
 		}
 
-		// render the game above everything else
-		if(m_Map.m_pGameGroup->m_Visible && m_Map.m_pGameLayer->m_Visible)
+		if(m_Map.m_pGameGroup->m_Visible)
 		{
-			m_Map.m_pGameGroup->MapScreen();
-			m_Map.m_pGameLayer->Render();
+			for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
+			{
+				// render the game above everything else
+				if(m_Map.m_apGameLayers[t]->m_Visible)
+				{
+					m_Map.m_pGameGroup->MapScreen();
+					m_Map.m_apGameLayers[t]->Render();
+				}
+			}
 		}
 
 		CLayerTiles *pT = static_cast<CLayerTiles *>(GetSelectedLayerType(0, LAYERTYPE_TILES));
@@ -1852,8 +1982,10 @@ void CEditor::DoMapEditor(CUIRect View, CUIRect ToolBar)
 		{
 			m_TilesetPicker.m_Image = t->m_Image;
 			m_TilesetPicker.m_Texture = t->m_Texture;
+			m_TilesetPicker.m_AltTexture = t->m_AltTexture;
 			m_TilesetPicker.m_Game = t->m_Game;
-			m_TilesetPicker.Render();
+			m_TilesetPicker.m_GameLayerType = t->m_GameLayerType;
+			m_TilesetPicker.Render(true);
 			if(m_ShowTileInfo)
 				m_TilesetPicker.ShowInfo();
 		}
@@ -2645,7 +2777,7 @@ void CEditor::RenderLayers(CUIRect ToolBox, CUIRect ToolBar, CUIRect View)
 
 				Button.VSplitRight(12.0f, &Button, &SaveCheck);
 				if(DoButton_Ex(&m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap, "S", m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap, &SaveCheck, 0, "Enable/disable layer for saving", CUI::CORNER_R))
-					if(m_Map.m_lGroups[g]->m_lLayers[i] != m_Map.m_pGameLayer)
+					if(!m_Map.IsGameLayer(m_Map.m_lGroups[g]->m_lLayers[i]))
 						m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap = !m_Map.m_lGroups[g]->m_lLayers[i]->m_SaveToMap;
 
 				if(m_Map.m_lGroups[g]->m_lLayers[i]->m_aName[0])
@@ -4446,11 +4578,15 @@ void CEditorMap::DeleteEnvelope(int Index)
 	m_lEnvelopes.remove_index(Index);
 }
 
-void CEditorMap::MakeGameLayer(CLayer *pLayer)
+void CEditorMap::MakeGameLayers(CLayerGame *apLayers[NUM_GAMELAYERTYPES])
 {
-	m_pGameLayer = (CLayerGame *)pLayer;
-	m_pGameLayer->m_pEditor = m_pEditor;
-	m_pGameLayer->m_Texture = m_pEditor->m_EntitiesTexture;
+	for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
+	{
+		m_apGameLayers[t] = apLayers[t];
+		m_apGameLayers[t]->m_pEditor = m_pEditor;
+		m_apGameLayers[t]->m_Texture = m_pEditor->m_aEntitiesTexture[t];
+		m_apGameLayers[t]->m_AltTexture = m_pEditor->m_aAltEntitiesTexture[t];
+	}
 }
 
 void CEditorMap::MakeGameGroup(CLayerGroup *pGroup)
@@ -4470,7 +4606,7 @@ void CEditorMap::Clean()
 
 	m_MapInfo.Reset();
 
-	m_pGameLayer = 0x0;
+	mem_zero(m_apGameLayers, sizeof(m_apGameLayers));
 	m_pGameGroup = 0x0;
 
 	m_Modified = false;
@@ -4502,8 +4638,13 @@ void CEditorMap::CreateDefault()
 
 	// add game layer
 	MakeGameGroup(NewGroup());
-	MakeGameLayer(new CLayerGame(50, 50));
-	m_pGameGroup->AddLayer(m_pGameLayer);
+	CLayerGame *apGameLayers[NUM_GAMELAYERTYPES];
+	for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
+	{
+		apGameLayers[t] = new CLayerGame(50, 50, t);
+		m_pGameGroup->AddLayer(apGameLayers[t]);
+	}
+	MakeGameLayers(apGameLayers);
 }
 
 void CEditor::Init()
@@ -4522,7 +4663,17 @@ void CEditor::Init()
 	m_CheckerTexture = Graphics()->LoadTexture("editor/checker.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, 0);
 	m_BackgroundTexture = Graphics()->LoadTexture("editor/background.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, 0);
 	m_CursorTexture = Graphics()->LoadTexture("editor/cursor.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, 0);
-	m_EntitiesTexture = Graphics()->LoadTexture("editor/entities.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+
+	mem_zero(m_aEntitiesTexture, sizeof(m_aEntitiesTexture));
+	m_aEntitiesTexture[GAMELAYERTYPE_COLLISION] = Graphics()->LoadTexture("editor/entities.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	m_aEntitiesTexture[GAMELAYERTYPE_FREEZE] = Graphics()->LoadTexture("editor/entities_freeze.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	m_aEntitiesTexture[GAMELAYERTYPE_SWITCH] = Graphics()->LoadTexture("editor/entities_switch.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	m_aEntitiesTexture[GAMELAYERTYPE_TELE] = Graphics()->LoadTexture("editor/entities_tele.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	m_aEntitiesTexture[GAMELAYERTYPE_RACE] = Graphics()->LoadTexture("editor/entities_race.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	m_aEntitiesTexture[GAMELAYERTYPE_PROPERTEE] = Graphics()->LoadTexture("editor/entities_propertee.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	mem_zero(m_aAltEntitiesTexture, sizeof(m_aAltEntitiesTexture));
+	m_aAltEntitiesTexture[GAMELAYERTYPE_SWITCH] = Graphics()->LoadTexture("editor/switch_combos.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
+	m_aAltEntitiesTexture[GAMELAYERTYPE_TELE] = Graphics()->LoadTexture("editor/tele_combos.png", IStorage::TYPE_ALL, CImageInfo::FORMAT_AUTO, IGraphics::TEXLOAD_MULTI_DIMENSION);
 
 	m_TilesetPicker.m_pEditor = this;
 	m_TilesetPicker.MakePalette();

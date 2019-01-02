@@ -114,6 +114,7 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 		// save group name
 		StrToInts(GItem.m_aName, sizeof(GItem.m_aName)/sizeof(int), pGroup->m_aName);
 
+		bool FoundGameLayer = false;
 		for(int l = 0; l < pGroup->m_lLayers.size(); l++)
 		{
 			if(!pGroup->m_lLayers[l]->m_SaveToMap)
@@ -137,7 +138,25 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 
 				Item.m_Width = pLayer->m_Width;
 				Item.m_Height = pLayer->m_Height;
-				Item.m_Flags = pLayer->m_Game ? TILESLAYERFLAG_GAME : 0;
+				Item.m_Flags = 0;
+				if(pLayer->m_Game)
+				{
+					if(!FoundGameLayer)
+					{
+						FoundGameLayer = true;
+						CLayerTiles* pCollisionLayer = 0;
+						for(int i = 0; i < pGroup->m_lLayers.size(); i++)
+						{
+							CLayerTiles *pLayer = (CLayerTiles *)pGroup->m_lLayers[i];
+							if(pLayer->m_Game && ((CLayerGame *)pLayer)->m_GameLayerType == GAMELAYERTYPE_COLLISION)
+								pCollisionLayer = pLayer;
+						}
+						WriteVanillaLayer(&df, pCollisionLayer, &LayerCount);
+						GItem.m_NumLayers++;
+					}
+					CLayerGame *pLayerGame = (CLayerGame *)pLayer;
+					Item.m_Flags = GameLayerTypeToTileMapFlags(pLayerGame->m_GameLayerType);
+				}
 				Item.m_Image = pLayer->m_Image;
 				Item.m_Data = df.AddData(pLayer->m_SaveTilesSize, pLayer->m_pSaveTiles);
 
@@ -226,6 +245,80 @@ int CEditorMap::Save(class IStorage *pStorage, const char *pFileName)
 	}
 
 	return 1;
+}
+
+void CEditorMap::WriteVanillaLayer(CDataFileWriter* pDataFileWriter, CLayerTiles* pCollisionLayer, int* pLayerCount)
+{
+	CMapItemLayerTilemap Item;
+	Item.m_Version = 3;
+
+	Item.m_Layer.m_Flags = pCollisionLayer->m_Flags;
+	Item.m_Layer.m_Type = pCollisionLayer->m_Type;
+
+	Item.m_Color = pCollisionLayer->m_Color;
+	Item.m_ColorEnv = pCollisionLayer->m_ColorEnv;
+	Item.m_ColorEnvOffset = pCollisionLayer->m_ColorEnvOffset;
+
+	Item.m_Width = pCollisionLayer->m_Width;
+	Item.m_Height = pCollisionLayer->m_Height;
+	Item.m_Flags = GameLayerTypeToTileMapFlags(GAMELAYERTYPE_VANILLA);
+
+	Item.m_Image = pCollisionLayer->m_Image;
+	
+	int Size = pCollisionLayer->m_Width * pCollisionLayer->m_Height;
+	CTile aTiles[Size];
+	mem_zero(aTiles, sizeof(aTiles));
+	for(int i = 0; i < Size; i++)
+	{
+		if(pCollisionLayer->m_pTiles[i].m_Reserved)
+		{
+			aTiles[i].m_Index = TILE_AIR;
+			continue;
+		}
+		
+		int Index = pCollisionLayer->m_pTiles[i].m_Index;
+		switch(Index)
+		{
+			default:
+			case TILE_AIR:
+				aTiles[i].m_Index = TILE_AIR;
+				break;
+			case TILE_DEATH:
+				aTiles[i].m_Index = TILE_DEATH;
+				break;
+			case TILE_SOLID:
+			case TILE_SEMISOLID_HOOK:
+			case TILE_SEMISOLID_PROJ:
+			case TILE_SEMISOLID_BOTH:
+				aTiles[i].m_Index = TILE_SOLID;
+				break;
+			case TILE_NOHOOK:
+			case TILE_SEMISOLID_PROJ_NOHOOK:
+				aTiles[i].m_Index = TILE_NOHOOK;
+				break;
+			case ENTITY_OFFSET + ENTITY_SPAWN:
+			case ENTITY_OFFSET + ENTITY_SPAWN_RED:
+			case ENTITY_OFFSET + ENTITY_SPAWN_BLUE:
+			case ENTITY_OFFSET + ENTITY_FLAGSTAND_RED:
+			case ENTITY_OFFSET + ENTITY_FLAGSTAND_BLUE:
+			case ENTITY_OFFSET + ENTITY_ARMOR_1:
+			case ENTITY_OFFSET + ENTITY_HEALTH_1:
+			case ENTITY_OFFSET + ENTITY_WEAPON_SHOTGUN:
+			case ENTITY_OFFSET + ENTITY_WEAPON_GRENADE:
+			case ENTITY_OFFSET + ENTITY_POWERUP_NINJA:
+			case ENTITY_OFFSET + ENTITY_WEAPON_LASER:
+				aTiles[i].m_Index = Index;
+				break;
+		}
+	}
+	Item.m_Data = pDataFileWriter->AddData(Size*sizeof(CTile), aTiles);
+
+	// save layer name
+	StrToInts(Item.m_aName, sizeof(Item.m_aName)/sizeof(int), s_apGameLayerTypeNames[GAMELAYERTYPE_COLLISION]);
+
+	pDataFileWriter->AddItem(MAPITEMTYPE_LAYER, *pLayerCount, sizeof(Item), &Item);
+
+	(*pLayerCount)++;
 }
 
 int CEditor::Load(const char *pFileName, int StorageType)
@@ -325,6 +418,10 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 
 		// load groups
 		{
+			// save gamelayers
+			CLayerGame *apGameLayers[NUM_GAMELAYERTYPES] = { 0 };
+			CLayerGroup *pGameGroup = 0;
+
 			int LayersStart, LayersNum;
 			DataFile.GetType(MAPITEMTYPE_LAYER, &LayersStart, &LayersNum);
 
@@ -333,6 +430,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 			for(int g = 0; g < Num; g++)
 			{
 				CMapItemGroup *pGItem = (CMapItemGroup *)DataFile.GetItem(Start+g, 0, 0);
+				int IsGameGroup = 0;
 
 				if(pGItem->m_Version < 1 || pGItem->m_Version > CMapItemGroup::CURRENT_VERSION)
 					continue;
@@ -356,6 +454,8 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 				if(pGItem->m_Version >= 3)
 					IntsToStr(pGItem->m_aName, sizeof(pGroup->m_aName)/sizeof(int), pGroup->m_aName);
 
+				bool CollisionFound = false;
+				int VanillaIndex = -1;
 				for(int l = 0; l < pGItem->m_NumLayers; l++)
 				{
 					CLayer *pLayer = 0;
@@ -370,18 +470,41 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 
 						if(pTilemapItem->m_Flags&TILESLAYERFLAG_GAME)
 						{
-							pTiles = new CLayerGame(pTilemapItem->m_Width, pTilemapItem->m_Height);
-							MakeGameLayer(pTiles);
-							MakeGameGroup(pGroup);
+							// determine the game layer type
+							int Type = TileMapFlagsToGameLayerType(pTilemapItem->m_Flags);
+							dbg_msg("dbg", "type=%d", Type);
+							if(!pGameGroup)
+							{
+								pGameGroup = pGroup;
+								IsGameGroup = 1;
+							}
+							if(!(-1 <= Type && Type < NUM_GAMELAYERTYPES))
+								continue;
+								
+							if(Type == GAMELAYERTYPE_VANILLA)
+							{
+								pTiles = new CLayerGame(pTilemapItem->m_Width, pTilemapItem->m_Height, GAMELAYERTYPE_COLLISION);
+								VanillaIndex = l;
+							}
+							else
+							{
+								pTiles = new CLayerGame(pTilemapItem->m_Width, pTilemapItem->m_Height, Type);
+								if(Type == GAMELAYERTYPE_COLLISION)
+									CollisionFound = true;
+								if(!apGameLayers[Type])
+									apGameLayers[Type] = (CLayerGame *)pTiles;
+							}
+
 						}
 						else
 						{
 							pTiles = new CLayerTiles(pTilemapItem->m_Width, pTilemapItem->m_Height);
-							pTiles->m_pEditor = m_pEditor;
 							pTiles->m_Color = pTilemapItem->m_Color;
 							pTiles->m_ColorEnv = pTilemapItem->m_ColorEnv;
 							pTiles->m_ColorEnvOffset = pTilemapItem->m_ColorEnvOffset;
 						}
+
+						pTiles->m_pEditor = m_pEditor;
 
 						pLayer = pTiles;
 
@@ -436,7 +559,35 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 					if(pLayer)
 						pLayer->m_Flags = pLayerItem->m_Flags;
 				}
+
+				// if this is the game group, add missing game layers
+				if(IsGameGroup)
+				{
+				
+					if(CollisionFound && VanillaIndex != -1)
+					{
+						dbg_msg("dbg", "VanillaIndex: %d", VanillaIndex);
+						pGroup->DeleteLayer(VanillaIndex);
+					}
+					else if(!CollisionFound)
+					{
+						apGameLayers[GAMELAYERTYPE_COLLISION] = (CLayerGame *)(pGroup->m_lLayers[VanillaIndex]);
+						str_copy(pGroup->m_lLayers[VanillaIndex]->m_aName, s_apGameLayerTypeNames[GAMELAYERTYPE_COLLISION], sizeof(pGroup->m_lLayers[VanillaIndex]->m_aName));
+					}
+
+					for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
+					{
+						if(!apGameLayers[t])
+						{
+							apGameLayers[t] = new CLayerGame(50, 50, t);
+							pGroup->AddLayer(apGameLayers[t]);
+						}
+					}
+				}
 			}
+
+			MakeGameLayers(apGameLayers);
+			MakeGameGroup(pGameGroup);
 		}
 
 		// load envelopes

@@ -62,6 +62,10 @@ class IGameController
 	void StartMatch();
 	void StartRound();
 
+	void ResetWorlds();
+	void PauseWorlds();
+	void UnpauseWorlds();
+
 	// map
 	char m_aMapWish[128];
 	
@@ -85,11 +89,13 @@ class IGameController
 	vec2 m_aaSpawnPoints[3][64];
 	int m_aNumSpawnPoints[3];
 	
-	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos) const;
-	void EvaluateSpawnType(CSpawnEval *pEval, int Type) const;
+	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int WorldID) const;
+	void EvaluateSpawnType(CSpawnEval *pEval, int Type, int WorldID) const;
 
 	// team
 	int ClampTeam(int Team) const;
+
+	int m_NumRealPlayers;
 
 protected:
 	CGameContext *GameServer() const { return m_pGameServer; }
@@ -152,12 +158,15 @@ public:
 
 		Arguments:
 			index - Entity index.
+			index - Tile flags.
 			pos - Where the entity is located in the world.
+			SwitchGroup - The switch group ID the entity shall have.
+			InvertSwitch - Whether entity should react inverted to switches.
 
 		Returns:
 			bool?
 	*/
-	virtual bool OnEntity(int Index, vec2 Pos);
+	virtual bool OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, bool InvertSwitch);
 
 	void OnPlayerConnect(class CPlayer *pPlayer);
 	void OnPlayerDisconnect(class CPlayer *pPlayer);
@@ -195,13 +204,15 @@ public:
 	bool IsTeamChangeAllowed() const;
 	bool IsTeamplay() const { return m_GameFlags&GAMEFLAG_TEAMS; }
 	
+	int GetRealPlayerNum() { return m_NumRealPlayers; }
+
 	const char *GetGameType() const { return m_pGameType; }
 	
 	// map
 	void ChangeMap(const char *pToMap);
 
 	//spawn
-	bool CanSpawn(int Team, vec2 *pPos) const;
+	bool CanSpawn(int Team, vec2 *pPos, int WorldID) const;
 	bool GetStartRespawnState() const;
 
 	// team

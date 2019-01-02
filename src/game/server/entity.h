@@ -5,6 +5,8 @@
 
 #include <base/vmath.h>
 
+#include <game/server/gamecontext.h>
+
 #include "alloc.h"
 #include "gameworld.h"
 
@@ -26,6 +28,8 @@ private:
 	CEntity *m_pPrevTypeEntity;
 	CEntity *m_pNextTypeEntity;
 
+	class CEventHandler *m_pEvents;
+
 	int m_ID;
 	int m_ObjType;
 
@@ -39,6 +43,10 @@ private:
 	bool m_MarkedForDestroy;
 
 protected:
+	int m_SwitchGroup;
+	bool m_Persistent;
+	bool m_InvertSwitch;
+
 	/* State */
 
 	/*
@@ -52,13 +60,15 @@ protected:
 
 public:
 	/* Constructor */
-	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos, int ProximityRadius=0);
+	CEntity(CGameWorld *pGameWorld, int Objtype, vec2 Pos, int ProximityRadius, int SwitchGroup, bool InvertSwitch);
 
 	/* Destructor */
 	virtual ~CEntity();
 
 	/* Objects */
 	class CGameWorld *GameWorld()		{ return m_pGameWorld; }
+	class CCollision *Collision() 		{ return m_pGameWorld->Collision(); }
+	class CEventHandler *Events() 		{ return m_pGameWorld->Events(); }
 	class CGameContext *GameServer()	{ return m_pGameWorld->GameServer(); }
 	class IServer *Server()				{ return m_pGameWorld->Server(); }
 
@@ -116,8 +126,9 @@ public:
 				being generated. Could be -1 to create a complete
 				snapshot of everything in the game for demo
 				recording.
+			World - ID of the world the entity lives in
 	*/
-	virtual void Snap(int SnappingClient) {}
+	virtual void Snap(int SnappingClient, int World) {}
 
 	virtual void PostSnap() {}
 
@@ -139,6 +150,9 @@ public:
 	int NetworkClipped(int SnappingClient, vec2 CheckPos);
 
 	bool GameLayerClipped(vec2 CheckPos);
+	bool Active();
+
+	virtual void MoveToWorld(CGameWorld *pWorld);
 };
 
 #endif

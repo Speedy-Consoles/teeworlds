@@ -5,7 +5,7 @@
 #include "gamecontext.h"
 #include "player.h"
 
-CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRadius)
+CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRadius, int SwitchGroup, bool InvertSwitch)
 {
 	m_pGameWorld = pGameWorld;
 
@@ -19,12 +19,22 @@ CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRad
 
 	m_MarkedForDestroy = false;
 	m_Pos = Pos;
+
+	m_SwitchGroup = SwitchGroup;
+	m_InvertSwitch = InvertSwitch;
 }
 
 CEntity::~CEntity()
 {
 	GameWorld()->RemoveEntity(this);
 	Server()->SnapFreeID(m_ID);
+}
+
+void CEntity::MoveToWorld(CGameWorld *pWorld)
+{
+	m_pGameWorld->RemoveEntity(this);
+	m_pGameWorld = pWorld;
+	m_pGameWorld->InsertEntity(this);
 }
 
 int CEntity::NetworkClipped(int SnappingClient)
@@ -52,6 +62,12 @@ bool CEntity::GameLayerClipped(vec2 CheckPos)
 {
 	int rx = round_to_int(CheckPos.x) / 32;
 	int ry = round_to_int(CheckPos.y) / 32;
-	return (rx < -200 || rx >= GameServer()->Collision()->GetWidth()+200)
-			|| (ry < -200 || ry >= GameServer()->Collision()->GetHeight()+200);
+	return (rx < -200 || rx >= Collision()->GetWidth()+200)
+			|| (ry < -200 || ry >= Collision()->GetHeight()+200);
+}
+
+bool CEntity::Active()
+{
+	return m_SwitchGroup == -1 || (GameWorld()->m_aSwitchStates[m_SwitchGroup] && m_InvertSwitch)
+			|| (!GameWorld()->m_aSwitchStates[m_SwitchGroup] && !m_InvertSwitch);
 }

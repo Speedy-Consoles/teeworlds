@@ -6,6 +6,7 @@
 
 #include "entities/character.h"
 #include "entities/pickup.h"
+#include "entities/projectile.h"
 #include "gamecontext.h"
 #include "gamecontroller.h"
 #include "player.h"
@@ -20,6 +21,8 @@ IGameController::IGameController(CGameContext *pGameServer)
 	m_aTeamSize[TEAM_RED] = 0;
 	m_aTeamSize[TEAM_BLUE] = 0;
 	m_UnbalancedTick = TBALANCE_OK;
+
+	m_NumRealPlayers = 0;
 
 	// game
 	m_GameState = IGS_GAME_RUNNING;
@@ -273,7 +276,7 @@ void IGameController::OnFlagReturn(CFlag *pFlag)
 {
 }
 
-bool IGameController::OnEntity(int Index, vec2 Pos)
+bool IGameController::OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, bool InvertSwitch)
 {
 	// don't add pickups in survival
 	if(m_GameFlags&GAMEFLAG_SURVIVAL)
@@ -313,11 +316,22 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	case ENTITY_POWERUP_NINJA:
 		if(g_Config.m_SvPowerups)
 			Type = PICKUP_NINJA;
+		break;
+	case ENTITY_CRAZY_BULLET:
+		vec2 Dir = vec2(0.0, 0.0);
+		if(Flags&TILEFLAG_ROTATE)
+			Dir.x = Flags&TILEFLAG_HFLIP ? -1.0 : 1.0;
+		else
+			Dir.y = Flags&TILEFLAG_VFLIP ? 1.0 : -1.0;
+		for(int i = 0; i < NUM_WORLDS; i++)
+			new CProjectile(GameServer()->GetWorld(i), WEAPON_SHOTGUN, -1, Pos, Dir, 0,0, false, 0, SOUND_GUN_FIRE, WEAPON_SHOTGUN, SwitchGroup, InvertSwitch, false);
+		break;
 	}
 
 	if(Type != -1)
 	{
-		new CPickup(&GameServer()->m_World, Type, Pos);
+		for(int i = 0; i < NUM_WORLDS; i++)
+			new CPickup(GameServer()->GetWorld(i), Type, Pos, SwitchGroup, InvertSwitch);
 		return true;
 	}
 
@@ -332,6 +346,9 @@ void IGameController::OnPlayerConnect(CPlayer *pPlayer)
 	char aBuf[128];
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	if(pPlayer->GetTeam() != TEAM_SPECTATORS)
+		m_NumRealPlayers++;
 
 	// update game info
 	UpdateGameInfo(ClientID);
@@ -353,6 +370,7 @@ void IGameController::OnPlayerDisconnect(CPlayer *pPlayer)
 	{
 		--m_aTeamSize[pPlayer->GetTeam()];
 		m_UnbalancedTick = TBALANCE_CHECK;
+		m_NumRealPlayers--;
 	}
 
 	CheckReadyStates(ClientID);
@@ -472,7 +490,7 @@ void IGameController::DoWincheckMatch()
 void IGameController::ResetGame()
 {
 	// reset the game
-	GameServer()->m_World.m_ResetRequested = true;
+	ResetWorlds();
 	
 	SetGameState(IGS_GAME_RUNNING);
 	m_GameStartTick = Server()->Tick();
@@ -559,7 +577,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 		{
 			m_GameState = GameState;
 			m_GameStateTimer = 3*Server()->TickSpeed();
-			GameServer()->m_World.m_Paused = true;
+			PauseWorlds();
 		}
 		break;
 	case IGS_GAME_RUNNING:
@@ -568,7 +586,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 			m_GameState = GameState;
 			m_GameStateTimer = TIMER_INFINITE;
 			SetPlayersReadyState(true);
-			GameServer()->m_World.m_Paused = false;
+			UnpauseWorlds();
 		}
 		break;
 	case IGS_GAME_PAUSED:
@@ -591,7 +609,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 				}
 
 				m_GameState = GameState;
-				GameServer()->m_World.m_Paused = true;
+				PauseWorlds();
 			}
 			else
 			{
@@ -611,7 +629,7 @@ void IGameController::SetGameState(EGameState GameState, int Timer)
 			m_GameState = GameState;
 			m_GameStateTimer = Timer*Server()->TickSpeed();
 			m_SuddenDeath = 0;
-			GameServer()->m_World.m_Paused = true;
+			PauseWorlds();
 		}
 	}
 }
@@ -648,6 +666,25 @@ void IGameController::StartRound()
 	else
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
 }
+
+void IGameController::ResetWorlds()
+{
+	for(int i = 0; i < NUM_WORLDS; i++)
+		GameServer()->GetWorld(i)->m_ResetRequested = true;
+}
+
+void IGameController::PauseWorlds()
+{
+	for(int i = 0; i < NUM_WORLDS; i++)
+		GameServer()->GetWorld(i)->m_Paused = true;
+}
+
+void IGameController::UnpauseWorlds()
+{
+	for(int i = 0; i < NUM_WORLDS; i++)
+		GameServer()->GetWorld(i)->m_Paused = false;
+}
+
 
 // general
 void IGameController::Snap(int SnappingClient)
@@ -736,10 +773,12 @@ void IGameController::Tick()
 				break;
 			case IGS_START_COUNTDOWN:
 				// unpause the game
+				ResetWorlds();
 				SetGameState(IGS_GAME_RUNNING);
 				break;
 			case IGS_GAME_PAUSED:
 				// end pause
+				UnpauseWorlds();
 				SetGameState(IGS_GAME_PAUSED, 0);
 				break;
 			case IGS_END_ROUND:
@@ -808,7 +847,7 @@ void IGameController::Tick()
 	DoActivityCheck();
 
 	// win check
-	if((m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_GAME_PAUSED) && !GameServer()->m_World.m_ResetRequested)
+	if((m_GameState == IGS_GAME_RUNNING || m_GameState == IGS_GAME_PAUSED) && !GameServer()->GetWorld(0)->m_ResetRequested)
 	{
 		if(m_GameFlags&GAMEFLAG_SURVIVAL)
 			DoWincheckRound();
@@ -857,7 +896,7 @@ bool IGameController::IsPlayerReadyMode() const
 
 bool IGameController::IsTeamChangeAllowed() const
 {
-	return !GameServer()->m_World.m_Paused || (m_GameState == IGS_START_COUNTDOWN && m_GameStartTick == Server()->Tick());
+	return !GameServer()->GetWorld(0)->m_Paused || (m_GameState == IGS_START_COUNTDOWN && m_GameStartTick == Server()->Tick());
 }
 
 void IGameController::UpdateGameInfo(int ClientID)
@@ -972,10 +1011,10 @@ void IGameController::CycleMap()
 }
 
 // spawn
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos) const
+bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int WorldID) const
 {
 	// spectators can't spawn
-	if(Team == TEAM_SPECTATORS || GameServer()->m_World.m_Paused || GameServer()->m_World.m_ResetRequested)
+	if(Team == TEAM_SPECTATORS || GameServer()->GetWorld(WorldID)->m_Paused || GameServer()->GetWorld(WorldID)->m_ResetRequested)
 		return false;
 
 	CSpawnEval Eval;
@@ -985,29 +1024,29 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos) const
 		Eval.m_FriendlyTeam = Team;
 
 		// first try own team spawn, then normal spawn and then enemy
-		EvaluateSpawnType(&Eval, 1+(Team&1));
+		EvaluateSpawnType(&Eval, 1+(Team&1), WorldID);
 		if(!Eval.m_Got)
 		{
-			EvaluateSpawnType(&Eval, 0);
+			EvaluateSpawnType(&Eval, 0, WorldID);
 			if(!Eval.m_Got)
-				EvaluateSpawnType(&Eval, 1+((Team+1)&1));
+				EvaluateSpawnType(&Eval, 1+((Team+1)&1), WorldID);
 		}
 	}
 	else
 	{
-		EvaluateSpawnType(&Eval, 0);
-		EvaluateSpawnType(&Eval, 1);
-		EvaluateSpawnType(&Eval, 2);
+		EvaluateSpawnType(&Eval, 0, WorldID);
+		EvaluateSpawnType(&Eval, 1, WorldID);
+		EvaluateSpawnType(&Eval, 2, WorldID);
 	}
 
 	*pOutPos = Eval.m_Pos;
 	return Eval.m_Got;
 }
 
-float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos) const
+float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int WorldID) const
 {
 	float Score = 0.0f;
-	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
+	CCharacter *pC = static_cast<CCharacter *>(GameServer()->GetWorld(WorldID)->FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for(; pC; pC = (CCharacter *)pC->TypeNext())
 	{
 		// team mates are not as dangerous as enemies
@@ -1022,21 +1061,21 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos) const
 	return Score;
 }
 
-void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
+void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int WorldID) const
 {
 	// get spawn point
 	for(int i = 0; i < m_aNumSpawnPoints[Type]; i++)
 	{
 		// check if the position is occupado
 		CCharacter *aEnts[MAX_CLIENTS];
-		int Num = GameServer()->m_World.FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GameServer()->GetWorld(WorldID)->FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity**)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 		vec2 Positions[5] = { vec2(0.0f, 0.0f), vec2(-32.0f, 0.0f), vec2(0.0f, -32.0f), vec2(32.0f, 0.0f), vec2(0.0f, 32.0f) };	// start, left, up, right, down
 		int Result = -1;
 		for(int Index = 0; Index < 5 && Result == -1; ++Index)
 		{
 			Result = Index;
 			for(int c = 0; c < Num; ++c)
-				if(GameServer()->Collision()->CheckPoint(m_aaSpawnPoints[Type][i]+Positions[Index]) ||
+				if(GameServer()->GetWorld(WorldID)->Collision()->GetCollisionAt(m_aaSpawnPoints[Type][i]+Positions[Index]) ||
 					distance(aEnts[c]->GetPos(), m_aaSpawnPoints[Type][i]+Positions[Index]) <= aEnts[c]->GetProximityRadius())
 				{
 					Result = -1;
@@ -1047,7 +1086,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type) const
 			continue;	// try next spawn point
 
 		vec2 P = m_aaSpawnPoints[Type][i]+Positions[Result];
-		float S = EvaluateSpawnPos(pEval, P);
+		float S = EvaluateSpawnPos(pEval, P, WorldID);
 		if(!pEval->m_Got || pEval->m_Score > S)
 		{
 			pEval->m_Got = true;

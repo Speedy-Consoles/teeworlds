@@ -31,6 +31,9 @@ public:
 	int GetCID() const { return m_ClientID; };
 	bool IsDummy() const { return m_Dummy; }
 
+	void ChangeWorld(int WorldID);
+	int WorldID() const { return m_WorldID; }
+
 	void Tick();
 	void PostTick();
 	void Snap(int SnappingClient);
@@ -124,6 +127,8 @@ private:
 	int m_ClientID;
 	int m_Team;
 	bool m_Dummy;
+
+	int m_WorldID;
 
 	// used for spectator mode
 	int m_SpecMode;

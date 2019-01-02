@@ -15,7 +15,7 @@
 /*
 	Tick
 		Game Context (CGameContext::tick)
-			Game World (GAMEWORLD::tick)
+			All Game Worlds (GAMEWORLD::tick)
 				Reset world if requested (GAMEWORLD::reset)
 				All entities in the world (ENTITY::tick)
 				All entities in the world (ENTITY::tick_defered)
@@ -26,10 +26,10 @@
 
 	Snap
 		Game Context (CGameContext::snap)
-			Game World (GAMEWORLD::snap)
+			All Game Worlds (GAMEWORLD::snap)
 				All entities in the world (ENTITY::snap)
+				Events handler (EVENT_HANDLER::snap)
 			Game Controller (GAMECONTROLLER::snap)
-			Events handler (EVENT_HANDLER::snap)
 			All players (CPlayer::snap)
 
 */
@@ -38,7 +38,6 @@ class CGameContext : public IGameServer
 	IServer *m_pServer;
 	class IConsole *m_pConsole;
 	CLayers m_Layers;
-	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
 
@@ -67,26 +66,33 @@ class CGameContext : public IGameServer
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
+	void ExtendEmoticon(int ClientID, int Emoticon);
+
+	int GetEmptyWorldID();
+
 	bool m_Resetting;
+
+	CGameWorld m_aWorlds[NUM_WORLDS];
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
-	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
+	CGameWorld *GetWorld(int WorldID) { return &m_aWorlds[WorldID]; }
 
 	CGameContext();
 	~CGameContext();
 
 	void Clear();
 
-	CEventHandler m_Events;
 	class CPlayer *m_apPlayers[MAX_CLIENTS];
 
 	class IGameController *m_pController;
-	CGameWorld m_World;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
+	int GetPlayerWorldID(int ClientID);
+
+	void ResetPlayers(CGameWorld *pWorld);
 
 	int m_LockTeams;
 
@@ -125,12 +131,13 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamage(vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, int MaxDamage);
-	void CreateHammerHit(vec2 Pos);
-	void CreatePlayerSpawn(vec2 Pos);
-	void CreateDeath(vec2 Pos, int Who);
-	void CreateSound(vec2 Pos, int Sound, int64 Mask=-1);
+	static void CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self);
+	static void CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, vec2 Pos, int Owner, int Weapon, int MaxDamage, bool OnlySelf);
+	static void CreateHammerHit(CEventHandler *pEvents, vec2 Pos);
+	static void CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos);
+	static void CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos);
+	static void CreateDeath(CEventHandler *pEvents, vec2 Pos, int Who);
+	static void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int64 Mask=-1, int SoloClientID=-1);
 
 	// network
 	void SendChat(int ChatterClientID, int Mode, int To, const char *pText);
@@ -147,6 +154,11 @@ public:
 	//
 	void CheckPureTuning();
 	void SendTuningParams(int ClientID);
+	bool ClientWorldRunning(int ClientID);
+	
+	void OnRaceStart(CGameWorld *pWorld);
+	void OnRaceFinish(CGameWorld *pWorld, int MilliSecs);
+	void OnRaceCancel(CGameWorld *pWorld);
 
 	//
 	void SwapTeams();

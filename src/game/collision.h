@@ -4,16 +4,25 @@
 #define GAME_COLLISION_H
 
 #include <base/vmath.h>
+#include <game/mapitems.h>
 
 class CCollision
 {
-	class CTile *m_pTiles;
-	int m_Width;
-	int m_Height;
+	class CTile *m_apTiles[NUM_GAMELAYERTYPES];
+	int m_aWidth[NUM_GAMELAYERTYPES];
+	int m_aHeight[NUM_GAMELAYERTYPES];
+	int m_pOpen;
 	class CLayers *m_pLayers;
+	bool *m_pSwitchStates;
 
-	bool IsTileSolid(int x, int y) const;
-	int GetTile(int x, int y) const;
+	vec2 m_aTeleTargets[255];
+
+	int m_NumCheckpoints;
+
+	int GetSwitchGroup(int PosIndex, int Layer) const;
+	ivec2 GetTilePos(float x, float y) const;
+	int GetPosIndex(int x, int y, int Layer) const;
+	int GetDirFlags(ivec2 Dir) const;
 
 public:
 	enum
@@ -21,19 +30,82 @@ public:
 		COLFLAG_SOLID=1,
 		COLFLAG_DEATH=2,
 		COLFLAG_NOHOOK=4,
+		COLFLAG_SOLID_HOOK=8,
+		COLFLAG_SOLID_PROJ=16,
+
+		DIRFLAG_RIGHT=1,
+		DIRFLAG_LEFT=2,
+		DIRFLAG_UP=4,
+		DIRFLAG_DOWN=8,
+
+		FREEZEFLAG_FREEZE=1,
+		FREEZEFLAG_UNFREEZE=2,
+		FREEZEFLAG_DEEP_FREEZE=4,
+		FREEZEFLAG_DEEP_UNFREEZE=8,
+
+		TRIGGERFLAG_FREEZE=1,
+		TRIGGERFLAG_UNFREEZE=2,
+		TRIGGERFLAG_DEEP_FREEZE=4,
+		TRIGGERFLAG_DEEP_UNFREEZE=8,
+
+		TRIGGERFLAG_SWITCH=1,
+
+		TRIGGERFLAG_TELEPORT=1,
+		TRIGGERFLAG_CUT_OTHER=2,
+		TRIGGERFLAG_CUT_OWN=4,
+		TRIGGERFLAG_STOP_NINJA=8,
+
+		TRIGGERFLAG_SPEEDUP=1,
+
+		PROPERTEE_ON=1,
+		PROPERTEE_OFF=-1,
+	};
+
+	struct CTriggers
+	{
+		int m_FreezeFlags;
+
+		int m_SwitchFlags;
+		bool m_SwitchState;
+		int m_SwitchGroup;
+		int m_SwitchDuration;
+
+		int m_TeleFlags;
+		vec2 m_TeleInPos;
+
+		vec2 m_TeleOutPos;
+		int m_SpeedupFlags;
+
+		int m_Checkpoint;
+
+		int m_Endless;
+		int m_Solo;
+		int m_Nohit;
+
+		CTriggers() : m_FreezeFlags(), m_SwitchFlags(), m_SwitchState(), m_SwitchGroup(), m_SwitchDuration(), m_TeleFlags(), m_TeleInPos(vec2(0.0f, 0.0f)),
+			m_TeleOutPos(vec2(0.0f, 0.0f)), m_SpeedupFlags(), m_Checkpoint(), m_Endless(), m_Solo(), m_Nohit() {}
 	};
 
 	CCollision();
-	void Init(class CLayers *pLayers);
-	bool CheckPoint(float x, float y) const { return IsTileSolid(round_to_int(x), round_to_int(y)); }
-	bool CheckPoint(vec2 Pos) const { return CheckPoint(Pos.x, Pos.y); }
-	int GetCollisionAt(float x, float y) const { return GetTile(round_to_int(x), round_to_int(y)); }
-	int GetWidth() const { return m_Width; };
-	int GetHeight() const { return m_Height; };
-	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
-	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces) const;
-	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity) const;
+	void Init(class CLayers *pLayers, bool *pSwitchStates);
+	void Init(class CCollision *pOther, bool *pSwitchStates);
+	int GetNumCheckpoints() const;
+	int GetDirFlagsAt(float x, float y) const;
+	int GetCollisionAt(float x, float y) const;
+	int GetCollisionAt(vec2 Pos) const { return GetCollisionAt(Pos.x, Pos.y); }
+	int GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask = ~0) const;
+	int GetCollisionMove(vec2 Pos, vec2 OldPos) const { return GetCollisionMove(Pos.x, Pos.y, OldPos.x, OldPos.y); }
+	int GetCollisionMove(vec2 Pos, float OldX, float OldY) const { return GetCollisionMove(Pos.x, Pos.y, OldX, OldY); }
+	int GetCollisionMove(float x, float y, vec2 OldPos) const { return GetCollisionMove(x, y, OldPos.x, OldPos.y); }
+	int GetWidth() const { return m_aWidth[GAMELAYERTYPE_COLLISION]; };
+	int GetHeight() const { return m_aHeight[GAMELAYERTYPE_COLLISION]; };
+	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int ColFlag) const;
+	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces, int ColFlag) const;
+	int MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity) const;
+	void HandleTriggerTiles(int x, int y, CTriggers *pOutTriggers) const;
 	bool TestBox(vec2 Pos, vec2 Size) const;
+	bool TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size) const;
+	bool TestHLineMove(vec2 Pos, vec2 OldPos, float Length) const;
 };
 
 #endif

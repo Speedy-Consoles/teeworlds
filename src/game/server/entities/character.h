@@ -24,8 +24,10 @@ public:
 	virtual void Tick();
 	virtual void TickDefered();
 	virtual void TickPaused();
-	virtual void Snap(int SnappingClient);
+	virtual void Snap(int SnappingClient, int World);
 	virtual void PostSnap();
+	
+	virtual void MoveToWorld(CGameWorld *pWorld);
 
 	bool IsGrounded();
 
@@ -35,6 +37,9 @@ public:
 
 	void HandleWeapons();
 	void HandleNinja();
+	void HandleTriggers(CCollision::CTriggers Triggers);
+
+	int RaceState() { return m_RaceState; }
 
 	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
 	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
@@ -55,12 +60,24 @@ public:
 
 	void SetEmote(int Emote, int Tick);
 
+	bool Solo() { return m_Core.m_Solo; }
+
+	void Freeze();
+	void Unfreeze();
+	void DeepFreeze();
+	void DeepUnfreeze();
+
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
 private:
+	void OnFinish();
+	void OnCheckpoint();
+
 	// player controlling this character
 	class CPlayer *m_pPlayer;
+
+	int m_LastSnapWorld;
 
 	bool m_Alive;
 
@@ -89,6 +106,7 @@ private:
 	// last tick that the player took any action ie some input
 	int m_LastAction;
 	int m_LastNoAmmoSound;
+	int m_LastFreezeCrySound;
 
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevInput;
@@ -99,8 +117,17 @@ private:
 	int m_NumInputs;
 	int m_Jumped;
 
+	int m_RaceStartTick;
+	int m_LastCheckpoint;
+	int m_LastCorrectCheckpoint;
+	int m_RaceState;
+
 	int m_Health;
 	int m_Armor;
+	
+	bool m_Nohit;
+
+	bool m_UnfreezeFire;
 
 	int m_TriggeredEvents;
 
@@ -112,6 +139,8 @@ private:
 		int m_CurrentMoveTime;
 		int m_OldVelAmount;
 	} m_Ninja;
+
+	int m_LastNinjaSound;
 
 	// the player core for the physics
 	CCharacterCore m_Core;

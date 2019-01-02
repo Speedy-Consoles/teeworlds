@@ -6,6 +6,7 @@
 #include "gamecontext.h"
 #include "gamecontroller.h"
 #include "gameworld.h"
+#include "eventhandler.h"
 
 
 //////////////////////////////////////////////////
@@ -20,6 +21,15 @@ CGameWorld::CGameWorld()
 	m_ResetRequested = false;
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		m_apFirstEntityTypes[i] = 0;
+	for(int i = 0; i < 255; i++)
+	{
+		m_aSwitchStates[i] = false;
+		m_aSwitchTicks[i] = -1;
+	}
+	
+	m_RaceState = RACESTATE_STARTING;
+	m_RaceStartTick = -1;
+	m_Default = false;
 }
 
 CGameWorld::~CGameWorld()
@@ -33,6 +43,7 @@ CGameWorld::~CGameWorld()
 void CGameWorld::SetGameServer(CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
+	m_Events.SetGameServer(pGameServer);
 	m_pServer = m_pGameServer->Server();
 }
 
@@ -104,16 +115,99 @@ void CGameWorld::RemoveEntity(CEntity *pEnt)
 	pEnt->m_pPrevTypeEntity = 0;
 }
 
+void CGameWorld::SetSwitchState(bool State, int GroupID, int Duration)
+{
+	m_aNextSwitchStates[GroupID] = State;
+	if(Duration == -1)
+		m_aSwitchTicks[GroupID] = -1;
+	else
+		m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
+}
+
+void CGameWorld::StartRace()
+{
+	if(!m_Default && m_RaceState == RACESTATE_STARTING)
+	{
+		m_RaceState = RACESTATE_STARTED;
+		m_RaceStartTick = Server()->Tick();
+		GameServer()->OnRaceStart(this);
+	}
+}
+
+void CGameWorld::OnPlayerDeath()
+{
+	if(!m_Default)
+	{
+		if(m_RaceState == RACESTATE_STARTED)
+		{
+			m_RaceState = RACESTATE_CANCELED;
+			GameServer()->OnRaceCancel(this);
+		}
+
+		bool AllStarting = true;
+		for(CEntity *pEnt = m_apFirstEntityTypes[ENTTYPE_CHARACTER]; pEnt; )
+		{
+			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+			if(((CCharacter *) pEnt)->IsAlive() && ((CCharacter *) pEnt)->RaceState() != RACESTATE_STARTING)
+			{
+				AllStarting = false;
+				break;
+			}
+			pEnt = m_pNextTraverseEntity;
+		}
+
+		if(AllStarting)
+			m_RaceState = RACESTATE_STARTING;
+	}
+}
+
+void CGameWorld::OnFinish()
+{
+	if(m_Default || m_RaceState != RACESTATE_STARTED)
+		return;
+
+	bool AllFinished = true;
+	for(CEntity *pEnt = m_apFirstEntityTypes[ENTTYPE_CHARACTER]; pEnt; )
+	{
+		m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
+		if(((CCharacter *) pEnt)->RaceState() != RACESTATE_FINISHED)
+		{
+			AllFinished = false;
+			break;
+		}
+		pEnt = m_pNextTraverseEntity;
+	}
+	
+	int ms = (Server()->Tick() - m_RaceStartTick) * 1000 / (float) Server()->TickSpeed();
+	
+	if(AllFinished)
+	{
+		GameServer()->OnRaceFinish(this, ms);
+		m_RaceState = RACESTATE_FINISHED;
+	}
+	// TODO store finish time
+}
+
 //
-void CGameWorld::Snap(int SnappingClient)
+void CGameWorld::Snap(int SnappingClient, int WorldID)
 {
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
 		{
 			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
-			pEnt->Snap(SnappingClient);
+			pEnt->Snap(SnappingClient, WorldID);
 			pEnt = m_pNextTraverseEntity;
 		}
+
+	// snap switch states
+	CNetObj_SwitchStates *pSwitchStates = static_cast<CNetObj_SwitchStates *>(Server()->SnapNewItem(NETOBJTYPE_SWITCHSTATES, WorldID, sizeof(CNetObj_SwitchStates)));
+	if(pSwitchStates)
+	{
+		for(int i = 0; i < 255; i++)
+			pSwitchStates->m_aStates[i/8] |= m_aSwitchStates[i] << (i % 8);
+	}
+
+	m_Events.Snap(SnappingClient, WorldID);
 }
 
 void CGameWorld::PostSnap()
@@ -125,24 +219,34 @@ void CGameWorld::PostSnap()
 			pEnt->PostSnap();
 			pEnt = m_pNextTraverseEntity;
 		}
+	m_Events.Clear();
 }
 
-void CGameWorld::Reset()
+void CGameWorld::Reset(bool Soft)
 {
 	// reset all entities
 	for(int i = 0; i < NUM_ENTTYPES; i++)
 		for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
 		{
 			m_pNextTraverseEntity = pEnt->m_pNextTypeEntity;
-			pEnt->Reset();
+			if(!Soft || !pEnt->m_Persistent)
+				pEnt->Reset();
 			pEnt = m_pNextTraverseEntity;
 		}
 	RemoveEntities();
 
-	GameServer()->m_pController->OnReset();
-	RemoveEntities();
+	GameServer()->ResetPlayers(this);
 
+	for(int i = 0; i < 255; i++)
+	{
+		m_aSwitchStates[i] = false;
+		m_aSwitchTicks[i] = -1;
+	}
+
+	if(!Soft)
+		m_RaceState = RACESTATE_STARTING;
 	m_ResetRequested = false;
+	m_SoftResetRequested = false;
 }
 
 void CGameWorld::RemoveEntities()
@@ -164,7 +268,9 @@ void CGameWorld::RemoveEntities()
 void CGameWorld::Tick()
 {
 	if(m_ResetRequested)
-		Reset();
+		Reset(false);
+	else if(m_SoftResetRequested)
+		Reset(true);
 
 	if(!m_Paused)
 	{
@@ -184,9 +290,28 @@ void CGameWorld::Tick()
 				pEnt->TickDefered();
 				pEnt = m_pNextTraverseEntity;
 			}
+			
+		// update switch states
+		m_SwitchStateChanged = false;
+		for(int i = 0; i < 255; i++)
+		{
+			int Old = m_aSwitchStates[i];
+			m_aSwitchStates[i] = m_aNextSwitchStates[i];
+			if(m_aSwitchTicks[i] == 0)
+			{
+				m_aSwitchTicks[i] = -1;
+				m_aNextSwitchStates[i] = !m_aSwitchStates[i];
+			}
+			else if(m_aSwitchTicks[i] > 0)
+				m_aSwitchTicks[i]--;
+			if(Old != m_aSwitchStates[i])
+				m_SwitchStateChanged = true;
+		}
 	}
-	else if(GameServer()->m_pController->IsGamePaused())
+	else
 	{
+		++m_RaceStartTick;
+
 		// update all objects
 		for(int i = 0; i < NUM_ENTTYPES; i++)
 			for(CEntity *pEnt = m_apFirstEntityTypes[i]; pEnt; )
@@ -202,7 +327,7 @@ void CGameWorld::Tick()
 
 
 // TODO: should be more general
-CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity *pNotThis)
+CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, FnCountCharacter pfnCountCharacterCB, void *pUserData)
 {
 	// Find other players
 	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
@@ -211,7 +336,7 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 	CCharacter *p = (CCharacter *)FindFirst(ENTTYPE_CHARACTER);
 	for(; p; p = (CCharacter *)p->TypeNext())
  	{
-		if(p == pNotThis)
+		if(!pfnCountCharacterCB(p, pUserData))
 			continue;
 
 		vec2 IntersectPos = closest_point_on_line(Pos0, Pos1, p->m_Pos);
@@ -238,7 +363,7 @@ CEntity *CGameWorld::ClosestEntity(vec2 Pos, float Radius, int Type, CEntity *pN
 	float ClosestRange = Radius*2;
 	CEntity *pClosest = 0;
 
-	CEntity *p = GameServer()->m_World.FindFirst(Type);
+	CEntity *p = FindFirst(Type);
 	for(; p; p = p->TypeNext())
  	{
 		if(p == pNotThis)

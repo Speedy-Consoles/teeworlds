@@ -131,8 +131,8 @@ float CScoreboard::RenderSpectators(float x, float y, float w)
 	RenderTools()->DrawRoundRect(&Rect, vec4(0.0f, 0.0f, 0.0f, 0.25f), 5.0f);
 
 	// Headline
-	y += 30.0f;
-	TextRender()->Text(0, x+10.0f, y, 12.0f, SpectatorBuf, w-20.0f);
+	y += 10.0f;
+	TextRender()->Text(0, x+10.0f, y, 28.0f, Localize("Spectators"), w-20.0f);
 
 	// spectator names and now render everything
 	x += tw+2.0f+10.0f;
@@ -279,12 +279,12 @@ float CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const c
 			m_pClient->m_Snap.m_paPlayerInfos[m_pClient->m_Snap.m_SpecInfo.m_SpectatorID])
 		{
 			int Score = m_pClient->m_Snap.m_paPlayerInfos[m_pClient->m_Snap.m_SpecInfo.m_SpectatorID]->m_Score;
-			str_format(aBuf, sizeof(aBuf), "%d", Score);
+			MsToString(aBuf, sizeof(aBuf), Score);
 		}
 		else if(m_pClient->m_Snap.m_pLocalInfo)
 		{
 			int Score = m_pClient->m_Snap.m_pLocalInfo->m_Score;
-			str_format(aBuf, sizeof(aBuf), "%d", Score);
+			MsToString(aBuf, sizeof(aBuf), Score);
 		}
 	}
 	if(Align == -1)
@@ -466,13 +466,8 @@ float CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const c
 			else
 				OutlineColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
 
-			// set text color
-			TextRender()->TextColor(TextColor.r, TextColor.g, TextColor.b, ColorAlpha);
-			TextRender()->TextOutlineColor(OutlineColor.r, OutlineColor.g, OutlineColor.b, OutlineColor.a);
-
-			// ping
-			TextRender()->TextColor(TextColor.r, TextColor.g, TextColor.b, 0.5f*ColorAlpha);
-			str_format(aBuf, sizeof(aBuf), "%d", clamp(pInfo->m_pPlayerInfo->m_Latency, 0, 999));
+			// score
+			str_format(aBuf, sizeof(aBuf), "%d", clamp(pInfo->m_pPlayerInfo->m_Score, -999, 999));
 			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
 			TextRender()->SetCursor(&Cursor, PingOffset+PingLength-tw, y+Spacing, FontSize, TEXTFLAG_RENDER);
 			Cursor.m_LineWidth = PingLength;
@@ -600,6 +595,26 @@ float CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const c
 	TextRender()->TextOutlineColor(0.0f, 0.0f, 0.0f, 0.3f);
 
 	return HeadlineHeight+LineHeight*(m_PlayerLines+1);
+}
+
+void CScoreboard::MsToString(char *aBuf, size_t size, int Score)
+{
+	if(Score < 0)
+		aBuf[0] = 0;
+	else
+	{
+		float s = (Score % 60000) / 1000.0;
+		Score /= 60000;
+		int m = Score % 60;
+		Score /= 60;
+		int h = Score;
+		if(h)
+			str_format(aBuf, size, "%02d:%02d:%.3f", h, m, s);
+		else if(m)
+			str_format(aBuf, size, "%02d:%.3f", m, s);
+		else
+			str_format(aBuf, size, "%.3f", s);
+	}
 }
 
 void CScoreboard::RenderRecordingNotification(float x)

@@ -119,6 +119,8 @@ inline T SaturatedAdd(T Min, T Max, T Current, T Modifier)
 
 float VelocityRamp(float Value, float Start, float Range, float Curvature);
 
+#define MAX_SPEED 118.881f
+
 // hooking stuff
 enum
 {
@@ -156,7 +158,13 @@ public:
 	int m_HookState;
 	int m_HookedPlayer;
 
+	bool m_Endless;
+	bool m_Solo;
+
 	int m_Jumped;
+
+	int m_FreezeTick;
+	bool m_UnfreezeOnNextTick;
 
 	int m_Direction;
 	int m_Angle;
@@ -167,7 +175,14 @@ public:
 	void Init(CWorldCore *pWorld, CCollision *pCollision);
 	void Reset();
 	void Tick(bool UseInput);
+	int Move(CCollision::CTriggers *pOutTriggers);
 	void Move();
+	void HandleTriggers(CCollision::CTriggers Triggers);
+
+	void Freeze();
+	void Unfreeze();
+	void DeepFreeze();
+	void DeepUnfreeze();
 
 	void Read(const CNetObj_CharacterCore *pObjCore);
 	void Write(CNetObj_CharacterCore *pObjCore);

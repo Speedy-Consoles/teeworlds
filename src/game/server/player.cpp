@@ -21,6 +21,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool Dummy)
 	m_pCharacter = 0;
 	m_ClientID = ClientID;
 	m_Team = GameServer()->m_pController->GetStartTeam();
+	m_WorldID = DEFAULT_WORLDID;
 	m_SpecMode = SPEC_FREEVIEW;
 	m_SpectatorID = -1;
 	m_pSpecFlag = 0;
@@ -233,7 +234,7 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
-	if(GameServer()->m_World.m_Paused)
+	if(m_WorldID != -1 && GameServer()->GetWorld(m_WorldID)->m_Paused)
 	{
 		m_PlayerFlags = NewInput->m_PlayerFlags;
 		return;
@@ -268,8 +269,15 @@ void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 			m_ActiveSpecSwitch = true;
 			if(m_SpecMode == SPEC_FREEVIEW)
 			{
-				CCharacter *pChar = (CCharacter *)GameServer()->m_World.ClosestEntity(m_ViewPos, 6.0f*32, CGameWorld::ENTTYPE_CHARACTER, 0);
-				CFlag *pFlag = (CFlag *)GameServer()->m_World.ClosestEntity(m_ViewPos, 6.0f*32, CGameWorld::ENTTYPE_FLAG, 0);
+				CCharacter *pChar = 0;
+				for (uint i = 0; i < NUM_WORLDS; ++i)
+				{
+					CCharacter *pC = (CCharacter *)GameServer()->GetWorld(i)
+							->ClosestEntity(m_ViewPos, 6.0f*32, CGameWorld::ENTTYPE_CHARACTER, 0);
+					if (!pChar || (pC && distance(m_ViewPos, pChar->GetPos()) < distance(m_ViewPos, pC->GetPos())))
+						pChar = pC;
+				}
+				CFlag *pFlag = (CFlag *)GameServer()->GetWorld(0)->ClosestEntity(m_ViewPos, 6.0f*32, CGameWorld::ENTTYPE_FLAG, 0);
 				if(pChar || pFlag)
 				{
 					if(!pChar || (pFlag && pChar && distance(m_ViewPos, pFlag->GetPos()) < distance(m_ViewPos, pChar->GetPos())))
@@ -359,7 +367,7 @@ bool CPlayer::SetSpectatorID(int SpecMode, int SpectatorID)
 		{
 			if(SpecMode == SPEC_FLAGRED || SpecMode == SPEC_FLAGBLUE)
 			{
-				CFlag *pFlag = (CFlag*)GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_FLAG);
+				CFlag *pFlag = (CFlag*)GameServer()->GetWorld(0)->FindFirst(CGameWorld::ENTTYPE_FLAG);
 				while (pFlag)
 				{
 					if ((pFlag->GetTeam() == TEAM_RED && SpecMode == SPEC_FLAGRED) || (pFlag->GetTeam() == TEAM_BLUE && SpecMode == SPEC_FLAGBLUE))
@@ -441,6 +449,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 
 	if(Team == TEAM_SPECTATORS)
 	{
+		m_WorldID = -1;
 		// update spectator modes
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
@@ -458,15 +467,22 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	}
 }
 
+void CPlayer::ChangeWorld(int WorldID)
+{
+	m_WorldID = WorldID;
+	if(m_pCharacter && m_pCharacter->IsAlive())
+		m_pCharacter->MoveToWorld(GameServer()->GetWorld(WorldID));
+}
+
 void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	if(!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos, m_WorldID))
 		return;
 
 	m_Spawning = false;
-	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
+	m_pCharacter = new(m_ClientID) CCharacter(GameServer()->GetWorld(m_WorldID));
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(SpawnPos);
+	GameServer()->CreatePlayerSpawn(GameServer()->GetWorld(m_WorldID)->Events(), SpawnPos);
 }

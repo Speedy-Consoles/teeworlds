@@ -69,9 +69,9 @@ void CGameControllerCTF::OnFlagReturn(CFlag *pFlag)
 	GameServer()->SendGameMsg(GAMEMSG_CTF_RETURN, -1);
 }
 
-bool CGameControllerCTF::OnEntity(int Index, vec2 Pos)
+bool CGameControllerCTF::OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, bool InvertSwitch)
 {
-	if(IGameController::OnEntity(Index, Pos))
+	if(IGameController::OnEntity(Index, Flags, Pos, SwitchGroup, InvertSwitch))
 		return true;
 
 	int Team = -1;
@@ -80,7 +80,7 @@ bool CGameControllerCTF::OnEntity(int Index, vec2 Pos)
 	if(Team == -1 || m_apFlags[Team])
 		return false;
 
-	CFlag *F = new CFlag(&GameServer()->m_World, Team, Pos);
+	CFlag *F = new CFlag(GameServer()->GetWorld(0), Team, Pos);
 	m_apFlags[Team] = F;
 	return true;
 }
@@ -152,7 +152,7 @@ void CGameControllerCTF::Tick()
 {
 	IGameController::Tick();
 
-	if(GameServer()->m_World.m_ResetRequested || GameServer()->m_World.m_Paused)
+	if(GameServer()->GetWorld(0)->m_ResetRequested || GameServer()->GetWorld(0)->m_Paused)
 		return;
 
 	for(int fi = 0; fi < 2; fi++)
@@ -188,10 +188,10 @@ void CGameControllerCTF::Tick()
 		else
 		{
 			CCharacter *apCloseCCharacters[MAX_CLIENTS];
-			int Num = GameServer()->m_World.FindEntities(F->GetPos(), CFlag::ms_PhysSize, (CEntity**)apCloseCCharacters, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+			int Num = GameServer()->GetWorld(0)->FindEntities(F->GetPos(), CFlag::ms_PhysSize, (CEntity**)apCloseCCharacters, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 			for(int i = 0; i < Num; i++)
 			{
-				if(!apCloseCCharacters[i]->IsAlive() || apCloseCCharacters[i]->GetPlayer()->GetTeam() == TEAM_SPECTATORS || GameServer()->Collision()->IntersectLine(F->GetPos(), apCloseCCharacters[i]->GetPos(), NULL, NULL))
+				if(!apCloseCCharacters[i]->IsAlive() || apCloseCCharacters[i]->GetPlayer()->GetTeam() == TEAM_SPECTATORS || GameServer()->GetWorld(0)->Collision()->IntersectLine(F->GetPos(), apCloseCCharacters[i]->GetPos(), NULL, NULL, CCollision::COLFLAG_SOLID))
 					continue;
 
 				if(apCloseCCharacters[i]->GetPlayer()->GetTeam() == F->GetTeam())

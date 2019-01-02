@@ -5,15 +5,19 @@
 
 #include "character.h"
 #include "laser.h"
+#include <game/server/player.h>
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
-: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos)
+CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, bool Pull, bool OnlySelf)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos, 0, 0, false)
 {
 	m_Owner = Owner;
 	m_Energy = StartEnergy;
 	m_Dir = Direction;
 	m_Bounces = 0;
 	m_EvalTick = 0;
+	m_Pull = Pull;
+	m_OnlySelf = OnlySelf;
+	m_Persistent = true;
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }
@@ -22,16 +26,30 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 bool CLaser::HitCharacter(vec2 From, vec2 To)
 {
 	vec2 At;
-	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
-	CCharacter *pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar);
+	CCharacter *pHit;
+	if(m_OnlySelf && m_Bounces == 0)
+		return false;
+
+	pHit = GameWorld()->IntersectCharacter(m_Pos, To, 0.f, At, HitCharacter, this);
 	if(!pHit)
 		return false;
 
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
-	pHit->TakeDamage(vec2(0.f, 0.f), normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
+	if(m_Pull)
+		pHit->TakeDamage(normalize(From-To)*10, normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage/2, m_Owner, WEAPON_SHOTGUN);
+	else
+		pHit->TakeDamage(vec2(0.f, 0.f), normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
 	return true;
+}
+
+bool CLaser::HitCharacter(CCharacter *pCharacter, void *pUserData) {
+	CLaser *pLaser = (CLaser *)pUserData;
+	if(pCharacter->GetPlayer()->GetCID() == pLaser->m_Owner)
+		return pLaser->m_Bounces > 0;
+	else
+		return !pLaser->m_OnlySelf && !pCharacter->Solo();
 }
 
 void CLaser::DoBounce()
@@ -40,13 +58,13 @@ void CLaser::DoBounce()
 
 	if(m_Energy < 0)
 	{
-		GameServer()->m_World.DestroyEntity(this);
+		GameWorld()->DestroyEntity(this);
 		return;
 	}
 
 	vec2 To = m_Pos + m_Dir * m_Energy;
 
-	if(GameServer()->Collision()->IntersectLine(m_Pos, To, 0x0, &To))
+	if(Collision()->IntersectLine(m_Pos, To, 0x0, &To, CCollision::COLFLAG_SOLID_PROJ))
 	{
 		if(!HitCharacter(m_Pos, To))
 		{
@@ -57,7 +75,7 @@ void CLaser::DoBounce()
 			vec2 TempPos = m_Pos;
 			vec2 TempDir = m_Dir * 4.0f;
 
-			GameServer()->Collision()->MovePoint(&TempPos, &TempDir, 1.0f, 0);
+			Collision()->MovePoint(&TempPos, &TempDir, 1.0f, 0, CCollision::COLFLAG_SOLID_PROJ);
 			m_Pos = TempPos;
 			m_Dir = normalize(TempDir);
 
@@ -67,7 +85,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_LASER_BOUNCE);
+			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE, -1, m_OnlySelf ? m_Owner : -1);
 		}
 	}
 	else
@@ -83,7 +101,7 @@ void CLaser::DoBounce()
 
 void CLaser::Reset()
 {
-	GameServer()->m_World.DestroyEntity(this);
+	GameWorld()->DestroyEntity(this);
 }
 
 void CLaser::Tick()
@@ -97,7 +115,7 @@ void CLaser::TickPaused()
 	++m_EvalTick;
 }
 
-void CLaser::Snap(int SnappingClient)
+void CLaser::Snap(int SnappingClient, int World)
 {
 	if(NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From))
 		return;
@@ -111,4 +129,6 @@ void CLaser::Snap(int SnappingClient)
 	pObj->m_FromX = (int)m_From.x;
 	pObj->m_FromY = (int)m_From.y;
 	pObj->m_StartTick = m_EvalTick;
+	pObj->m_World = World;
+	pObj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
 }
