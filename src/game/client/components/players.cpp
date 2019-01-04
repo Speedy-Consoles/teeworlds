@@ -89,7 +89,7 @@ void CPlayers::RenderHook(
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 		Graphics()->QuadsBegin();
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
+		Graphics()->SetColor(1.0f * Opacity, 1.0f * Opacity, 1.0f * Opacity, Opacity);
 		//Graphics()->QuadsBegin();
 
 		vec2 Pos = Position;
@@ -300,7 +300,7 @@ void CPlayers::RenderPlayer(
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 		Graphics()->QuadsBegin();
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
+		Graphics()->SetColor(1.0f * Opacity, 1.0f * Opacity, 1.0f * Opacity, Opacity);
 		Graphics()->QuadsSetRotation(State.GetAttach()->m_Angle*pi*2+Angle);
 
 		// normal weapons
@@ -510,7 +510,8 @@ void CPlayers::RenderPlayer(
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_FREEZE].m_Id);
 		Graphics()->QuadsBegin();
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 0.8f * m_aFreezeFadeState[ClientID] * Opacity);
+		float a = 0.8f * m_aFreezeFadeState[ClientID] * Opacity;
+		Graphics()->SetColor(1.0f * a, 1.0f * a, 1.0f * a, a);
 
 		RenderTools()->SelectSprite(SPRITE_FROZEN);
 		RenderTools()->DrawSprite(Position.x, Position.y - 5, 72.0f);
@@ -521,7 +522,7 @@ void CPlayers::RenderPlayer(
 	{
 		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_EMOTICONS].m_Id);
 		Graphics()->QuadsBegin();
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Opacity);
+		Graphics()->SetColor(1.0f * Opacity, 1.0f * Opacity, 1.0f * Opacity, Opacity);
 		RenderTools()->SelectSprite(SPRITE_DOTDOT);
 		IGraphics::CQuadItem QuadItem(Position.x + 24, Position.y - 40, 64,64);
 		Graphics()->QuadsDraw(&QuadItem, 1);
@@ -607,8 +608,9 @@ void CPlayers::OnRender()
 			// only render active characters
 			if(!m_pClient->m_Snap.m_aCharacters[i].m_Active)
 			{
+				m_aFreezeFadeTick[i] =  0;
+				m_aFreezeFadeIntraTick[i] =  0.0f;
 				m_aFreezeFadeState[i] = 0.0f;
-				m_aFreezeFadeTick[i] =  0.0f;
 				continue;
 			}
 
