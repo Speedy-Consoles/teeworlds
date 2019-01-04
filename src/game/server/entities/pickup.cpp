@@ -153,8 +153,11 @@ void CPickup::TickPaused()
 		++m_SpawnTick;
 }
 
-void CPickup::Snap(int SnappingClient, int World)
+void CPickup::Snap(int SnappingClient, int WorldID)
 {
+	if (!WorldVisible(SnappingClient, WorldID))
+		return;
+
 	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient) || !Active())
 		return;
 
@@ -165,5 +168,5 @@ void CPickup::Snap(int SnappingClient, int World)
 	pP->m_X = (int)m_Pos.x;
 	pP->m_Y = (int)m_Pos.y;
 	pP->m_Type = m_Type;
-	pP->m_World = World;
+	pP->m_World = WorldID;
 }

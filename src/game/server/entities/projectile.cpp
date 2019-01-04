@@ -139,7 +139,7 @@ void CProjectile::TickPaused()
 	++m_StartTick;
 }
 
-void CProjectile::FillInfo(CNetObj_Projectile *pProj, int World)
+void CProjectile::FillInfo(CNetObj_Projectile *pProj, int WorldID)
 {
 	pProj->m_X = (int)m_Pos.x;
 	pProj->m_Y = (int)m_Pos.y;
@@ -147,12 +147,15 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj, int World)
 	pProj->m_VelY = (int)(m_Direction.y*100.0f);
 	pProj->m_StartTick = m_StartTick;
 	pProj->m_Type = m_Type;
-	pProj->m_World = World;
+	pProj->m_World = WorldID;
 	pProj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
 }
 
-void CProjectile::Snap(int SnappingClient, int World)
+void CProjectile::Snap(int SnappingClient, int WorldID)
 {
+	if (!WorldVisible(SnappingClient, WorldID))
+		return;
+
 	float Ct = (Server()->Tick()-m_StartTick)/(float)Server()->TickSpeed();
 
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
@@ -160,5 +163,5 @@ void CProjectile::Snap(int SnappingClient, int World)
 
 	CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
 	if(pProj)
-		FillInfo(pProj, World);
+		FillInfo(pProj, WorldID);
 }

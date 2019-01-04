@@ -115,8 +115,11 @@ void CLaser::TickPaused()
 	++m_EvalTick;
 }
 
-void CLaser::Snap(int SnappingClient, int World)
+void CLaser::Snap(int SnappingClient, int WorldID)
 {
+	if (!WorldVisible(SnappingClient, WorldID))
+		return;
+
 	if(NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From))
 		return;
 
@@ -129,6 +132,6 @@ void CLaser::Snap(int SnappingClient, int World)
 	pObj->m_FromX = (int)m_From.x;
 	pObj->m_FromY = (int)m_From.y;
 	pObj->m_StartTick = m_EvalTick;
-	pObj->m_World = World;
+	pObj->m_World = WorldID;
 	pObj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
 }

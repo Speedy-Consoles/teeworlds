@@ -81,8 +81,11 @@ void CFlag::TickPaused()
 		m_GrabTick++;
 }
 
-void CFlag::Snap(int SnappingClient, int World)
+void CFlag::Snap(int SnappingClient, int WorldID)
 {
+	if (!WorldVisible(SnappingClient, WorldID))
+		return;
+
 	if(NetworkClipped(SnappingClient))
 		return;
 
@@ -93,5 +96,5 @@ void CFlag::Snap(int SnappingClient, int World)
 	pFlag->m_X = (int)m_Pos.x;
 	pFlag->m_Y = (int)m_Pos.y;
 	pFlag->m_Team = m_Team;
-	pFlag->m_World = World;
+	pFlag->m_World = WorldID;
 }

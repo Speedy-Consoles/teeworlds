@@ -149,6 +149,8 @@ public:
 	int NetworkClipped(int SnappingClient);
 	int NetworkClipped(int SnappingClient, vec2 CheckPos);
 
+	bool WorldVisible(int SnappingClient, int WorldID);
+
 	bool GameLayerClipped(vec2 CheckPos);
 	bool Active();
 

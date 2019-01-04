@@ -58,6 +58,14 @@ int CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos)
 	return 0;
 }
 
+bool CEntity::WorldVisible(int SnappingClient, int WorldID)
+{
+	if (SnappingClient == -1)
+		return WorldID == 0;
+	else
+		return WorldID == GameServer()->m_apPlayers[SnappingClient]->WorldID();
+}
+
 bool CEntity::GameLayerClipped(vec2 CheckPos)
 {
 	int rx = round_to_int(CheckPos.x) / 32;

@@ -901,9 +901,9 @@ void CCharacter::DeepUnfreeze()
 	m_Core.DeepUnfreeze();
 }
 
-void CCharacter::Snap(int SnappingClient, int World)
+void CCharacter::Snap(int SnappingClient, int WorldID)
 {
-	m_LastSnapWorld = World;
+	m_LastSnapWorld = WorldID;
 
 	if(NetworkClipped(SnappingClient))
 		return;
@@ -945,7 +945,7 @@ void CCharacter::Snap(int SnappingClient, int World)
 
 	pCharacter->m_Direction = m_Input.m_Direction;
 
-	pCharacter->m_World = World;
+	pCharacter->m_World = WorldID;
 
 	if(m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
 		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->GetSpectatorID()))
