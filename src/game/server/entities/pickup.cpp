@@ -20,7 +20,7 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, vec2 Pos, int SwitchGroup, bo
 
 void CPickup::Reset()
 {
-	if (g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
+	if (!GameServer()->IsDDRace() && g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
 		m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
 	else
 		m_SpawnTick = -1;
@@ -144,7 +144,7 @@ void CPickup::Tick()
 						pChr->GetPlayer()->GetCID(), Server()->ClientName(pChr->GetPlayer()->GetCID()), m_Type);
 					GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 					int RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
-					if(RespawnTime >= 0)
+					if(!GameServer()->IsDDRace() && RespawnTime >= 0)
 						m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * RespawnTime;
 				}
 			}

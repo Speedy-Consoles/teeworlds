@@ -117,10 +117,10 @@ class Weapon_Shotgun(Struct):
 	def __init__(self):
 		Struct.__init__(self, "CDataWeaponspecShotgun")
 		self.base = Pointer(WeaponSpec, WeaponSpec())
-		self.curvature = Float(0)
+		self.curvature = Float(1.25)
 		self.speed = Float(2200)
 		self.speeddiff = Float(0.8)
-		self.lifetime = Float(0.0)
+		self.lifetime = Float(0.25)
 
 class Weapon_Grenade(Struct):
 	def __init__(self):
@@ -277,10 +277,10 @@ container.images.Add(image_freeze)
 
 container.pickups.Add(Pickup("health"))
 container.pickups.Add(Pickup("armor"))
-container.pickups.Add(Pickup("grenade", 0))
-container.pickups.Add(Pickup("shotgun", 0))
-container.pickups.Add(Pickup("laser", 0))
-container.pickups.Add(Pickup("ninja", 0, 0))
+container.pickups.Add(Pickup("grenade"))
+container.pickups.Add(Pickup("shotgun"))
+container.pickups.Add(Pickup("laser"))
+container.pickups.Add(Pickup("ninja", 90, 90))
 
 set_particles = SpriteSet("particles", image_particles, 8, 8)
 set_game = SpriteSet("game", image_game, 32, 16)
@@ -603,7 +603,7 @@ container.animations.Add(anim)
 
 weapon = WeaponSpec(container, "hammer")
 weapon.firedelay.Set(125)
-weapon.damage.Set(0)
+weapon.damage.Set(3)
 weapon.visual_size.Set(96)
 weapon.offsetx.Set(4)
 weapon.offsety.Set(-20)
@@ -653,7 +653,7 @@ container.weapons.id.Add(weapon)
 
 weapon = WeaponSpec(container, "ninja")
 weapon.firedelay.Set(800)
-weapon.damage.Set(0)
+weapon.damage.Set(9)
 weapon.visual_size.Set(96)
 weapon.offsetx.Set(0)
 weapon.offsety.Set(0)
