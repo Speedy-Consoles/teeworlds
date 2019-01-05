@@ -16,7 +16,7 @@
 #include "gamemodes/dm.h"
 #include "gamemodes/lms.h"
 #include "gamemodes/lts.h"
-#include "gamemodes/mod.h"
+#include "gamemodes/ddr.h"
 #include "gamemodes/tdm.h"
 #include "gamecontext.h"
 #include "player.h"
@@ -98,6 +98,11 @@ int CGameContext::GetPlayerWorldID(int ClientID)
 	if(ClientID < 0 || ClientID >= MAX_CLIENTS || !m_apPlayers[ClientID])
 		return -1;
 	return m_apPlayers[ClientID]->WorldID();
+}
+
+bool CGameContext::IsDDRace()
+{
+	return m_pController->IsDDRace();
 }
 
 void CGameContext::ResetPlayers(CGameWorld *pWorld)
@@ -1547,8 +1552,8 @@ void CGameContext::OnInit()
 		m_aWorlds[i].InitCollision(m_aWorlds[0].Collision());
 
 	// select gametype
-	if(str_comp_nocase(g_Config.m_SvGametype, "mod") == 0)
-		m_pController = new CGameControllerMOD(this);
+	if(str_comp_nocase(g_Config.m_SvGametype, "ddr") == 0)
+		m_pController = new CGameControllerDDR(this);
 	else if(str_comp_nocase(g_Config.m_SvGametype, "ctf") == 0)
 		m_pController = new CGameControllerCTF(this);
 	else if(str_comp_nocase(g_Config.m_SvGametype, "lms") == 0)
@@ -1651,7 +1656,7 @@ bool CGameContext::IsClientPlayer(int ClientID) const
 	return m_apPlayers[ClientID] && m_apPlayers[ClientID]->GetTeam() == TEAM_SPECTATORS ? false : true;
 }
 
-const char *CGameContext::GameType() const { return "DDRace"; }
+const char *CGameContext::GameType() const { return m_pController && m_pController->GetGameType() ? m_pController->GetGameType() : ""; }
 const char *CGameContext::Version() const { return GAME_VERSION; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 

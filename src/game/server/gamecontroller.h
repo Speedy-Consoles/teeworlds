@@ -203,6 +203,7 @@ public:
 	bool IsPlayerReadyMode() const;
 	bool IsTeamChangeAllowed() const;
 	bool IsTeamplay() const { return m_GameFlags&GAMEFLAG_TEAMS; }
+	virtual bool IsDDRace() const { return false; }
 	
 	int GetRealPlayerNum() { return m_NumRealPlayers; }
 

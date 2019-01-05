@@ -46,11 +46,22 @@ void CPickup::Tick()
 	if(Active())
 	{
 		// Check if a player intersected us
+		bool GiveToAllCharacters = GameServer()->IsDDRace() && m_Type != PICKUP_HEALTH && m_Type != PICKUP_ARMOR;
 		CCharacter *pChr;
-		if(m_Type == PICKUP_HEALTH || m_Type == PICKUP_ARMOR) // TODO DDRace or not ddrace
-			pChr = (CCharacter *)GameWorld()->ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0);
-		else
+		if(GiveToAllCharacters)
 			pChr = (CCharacter *)GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER);
+		else
+			pChr = (CCharacter *)GameWorld()->ClosestEntity(m_Pos, 20.0f, CGameWorld::ENTTYPE_CHARACTER, 0);
+
+		int GrenadeAmmo = g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Maxammo;
+		int ShotgunAmmo = g_pData->m_Weapons.m_aId[WEAPON_SHOTGUN].m_Maxammo;
+		int LaserAmmo = g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Maxammo;
+		if(GameServer()->IsDDRace())
+		{
+			GrenadeAmmo = -1;
+			ShotgunAmmo = -1;
+			LaserAmmo = -1;
+		}
 
 		for(; pChr; pChr = (CCharacter *)pChr->TypeNext())
 	 	{
@@ -77,8 +88,7 @@ void CPickup::Tick()
 						break;
 
 					case PICKUP_GRENADE:
-						// TODO DDRace if ddrace give -1
-						if(pChr->GiveWeapon(WEAPON_GRENADE, g_pData->m_Weapons.m_aId[WEAPON_GRENADE].m_Maxammo))
+						if(pChr->GiveWeapon(WEAPON_GRENADE, GrenadeAmmo))
 						{
 							Picked = true;
 							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_GRENADE);
@@ -87,8 +97,7 @@ void CPickup::Tick()
 						}
 						break;
 					case PICKUP_SHOTGUN:
-						// TODO DDRace if ddrace give -1
-						if(pChr->GiveWeapon(WEAPON_SHOTGUN, g_pData->m_Weapons.m_aId[WEAPON_SHOTGUN].m_Maxammo))
+						if(pChr->GiveWeapon(WEAPON_SHOTGUN, ShotgunAmmo))
 						{
 							Picked = true;
 							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
@@ -97,8 +106,7 @@ void CPickup::Tick()
 						}
 						break;
 					case PICKUP_LASER:
-						// TODO DDRace if ddrace give -1
-						if(pChr->GiveWeapon(WEAPON_LASER, g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Maxammo))
+						if(pChr->GiveWeapon(WEAPON_LASER, LaserAmmo))
 						{
 							Picked = true;
 							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
@@ -141,7 +149,7 @@ void CPickup::Tick()
 				}
 			}
 
-			if(m_Type == PICKUP_HEALTH || m_Type == PICKUP_ARMOR) // TODO DDRace or not ddrace
+			if(!GiveToAllCharacters)
 				break;
 		}
 	}

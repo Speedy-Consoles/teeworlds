@@ -91,6 +91,7 @@ public:
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
 	int GetPlayerWorldID(int ClientID);
+	bool IsDDRace();
 
 	void ResetPlayers(CGameWorld *pWorld);
 
