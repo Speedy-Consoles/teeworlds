@@ -37,7 +37,7 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == PICKUP_GRENADE || m_Type == PICKUP_SHOTGUN || m_Type == PICKUP_LASER)
-				CGameContext::CreateSound(Events(), m_Pos, SOUND_WEAPON_SPAWN);
+				GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_SPAWN);
 		}
 		else
 			return;
@@ -75,7 +75,7 @@ void CPickup::Tick()
 						if(pChr->IncreaseHealth(1))
 						{
 							Picked = true;
-							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_HEALTH);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_HEALTH);
 						}
 						break;
 
@@ -83,7 +83,7 @@ void CPickup::Tick()
 						if(pChr->IncreaseArmor(1))
 						{
 							Picked = true;
-							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_ARMOR);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_ARMOR);
 						}
 						break;
 
@@ -91,7 +91,7 @@ void CPickup::Tick()
 						if(pChr->GiveWeapon(WEAPON_GRENADE, GrenadeAmmo))
 						{
 							Picked = true;
-							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_GRENADE);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_GRENADE);
 							if(pChr->GetPlayer())
 								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_GRENADE);
 						}
@@ -100,7 +100,7 @@ void CPickup::Tick()
 						if(pChr->GiveWeapon(WEAPON_SHOTGUN, ShotgunAmmo))
 						{
 							Picked = true;
-							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
 							if(pChr->GetPlayer())
 								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_SHOTGUN);
 						}
@@ -109,7 +109,7 @@ void CPickup::Tick()
 						if(pChr->GiveWeapon(WEAPON_LASER, LaserAmmo))
 						{
 							Picked = true;
-							CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
 							if(pChr->GetPlayer())
 								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_LASER);
 						}

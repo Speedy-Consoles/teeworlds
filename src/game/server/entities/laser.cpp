@@ -37,10 +37,10 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
+	vec2 Force(0.f, 0.f);
 	if(m_Pull)
-		pHit->TakeDamage(normalize(From-To)*10, normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage/2, m_Owner, WEAPON_SHOTGUN);
-	else
-		pHit->TakeDamage(vec2(0.f, 0.f), normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
+		Force = normalize(From-To)*10;
+	pHit->TakeDamage(Force, normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
 	return true;
 }
 
@@ -85,7 +85,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE, -1, m_OnlySelf ? m_Owner : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE, -1, m_OnlySelf ? m_Owner : -1);
 		}
 	}
 	else

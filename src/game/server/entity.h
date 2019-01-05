@@ -28,8 +28,6 @@ private:
 	CEntity *m_pPrevTypeEntity;
 	CEntity *m_pNextTypeEntity;
 
-	class CEventHandler *m_pEvents;
-
 	int m_ID;
 	int m_ObjType;
 

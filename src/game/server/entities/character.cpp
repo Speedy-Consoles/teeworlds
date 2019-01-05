@@ -115,7 +115,7 @@ void CCharacter::SetWeapon(int W)
 	m_LastWeapon = m_ActiveWeapon;
 	m_QueuedWeapon = -1;
 	m_ActiveWeapon = W;
-	CGameContext::CreateSound(Events(), m_Pos, SOUND_WEAPON_SWITCH, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+	GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_SWITCH, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 
 	if(m_ActiveWeapon < 0 || m_ActiveWeapon >= NUM_WEAPONS)
 		m_ActiveWeapon = 0;
@@ -124,7 +124,7 @@ void CCharacter::SetWeapon(int W)
 
 bool CCharacter::IsGrounded()
 {
-	// TODO why?
+	// TODO DDRace why?
 	if(Collision()->TestHLineMove(m_Pos + vec2(0, GetProximityRadius() / 2 + 5), m_Pos + vec2(0, GetProximityRadius() / 2), GetProximityRadius()))
 		return true;
 	return false;
@@ -205,7 +205,7 @@ void CCharacter::HandleNinja()
 					continue;
 
 				// Hit a player, give him damage and stuffs...
-				CGameContext::CreateSound(Events(), aEnts[i]->m_Pos, SOUND_NINJA_HIT);
+				GameServer()->CreateSound(Events(), aEnts[i]->m_Pos, SOUND_NINJA_HIT);
 				// set his velocity to fast upward (for now)
 				if(m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
@@ -307,7 +307,7 @@ void CCharacter::FireWeapon()
 		m_UnfreezeFire = true;
 		if(m_LastFreezeCrySound+Server()->TickSpeed() <= Server()->Tick())
 		{
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG);
 			m_LastFreezeCrySound = Server()->Tick();
 		}
 			
@@ -325,7 +325,7 @@ void CCharacter::FireWeapon()
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
 		if(m_LastNoAmmoSound+Server()->TickSpeed() <= Server()->Tick())
 		{
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_WEAPON_NOAMMO);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_NOAMMO);
 			m_LastNoAmmoSound = Server()->Tick();
 		}
 		return;
@@ -342,7 +342,7 @@ void CCharacter::FireWeapon()
 		{
 			// reset objects Hit
 			m_NumObjectsHit = 0;
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_HAMMER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_HAMMER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 
 			CCharacter *apEnts[MAX_CLIENTS];
 			int Hits = 0;
@@ -358,9 +358,9 @@ void CCharacter::FireWeapon()
 
 					// set his velocity to fast upward (for now)
 					if(length(pTarget->m_Pos-ProjStartPos) > 0.0f)
-						CGameContext::CreateHammerHit(Events(), pTarget->m_Pos-normalize(pTarget->m_Pos-ProjStartPos)*GetProximityRadius()*0.5f);
+						GameServer()->CreateHammerHit(Events(), pTarget->m_Pos-normalize(pTarget->m_Pos-ProjStartPos)*GetProximityRadius()*0.5f);
 					else
-						CGameContext::CreateHammerHit(Events(), ProjStartPos);
+						GameServer()->CreateHammerHit(Events(), ProjStartPos);
 
 					vec2 Dir;
 					if (length(pTarget->m_Pos - m_Pos) > 0.0f)
@@ -387,15 +387,15 @@ void CCharacter::FireWeapon()
 				ProjStartPos,
 				Direction,
 				(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GunLifetime),
-				0, false, 0, -1, WEAPON_GUN, 0, false, m_Nohit || m_Core.m_Solo);
+				g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, false, 0, -1, WEAPON_GUN, 0, false, m_Nohit || m_Core.m_Solo);
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_GUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_GUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_SHOTGUN:
 		{
 			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), true, m_Nohit || m_Core.m_Solo);
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_SHOTGUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_SHOTGUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_GRENADE:
@@ -405,15 +405,15 @@ void CCharacter::FireWeapon()
 				ProjStartPos,
 				Direction,
 				(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GrenadeLifetime),
-				0, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, 0, false, m_Nohit || m_Core.m_Solo);
+				g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, 0, false, m_Nohit || m_Core.m_Solo);
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_GRENADE_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_GRENADE_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_LASER:
 		{
 			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), false, m_Nohit || m_Core.m_Solo);
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_LASER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_LASER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 		case WEAPON_NINJA:
@@ -425,7 +425,7 @@ void CCharacter::FireWeapon()
 			m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
 			m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-			CGameContext::CreateSound(Events(), m_Pos, SOUND_NINJA_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_NINJA_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
 		} break;
 
 	}
@@ -482,7 +482,7 @@ void CCharacter::GiveNinja()
 
 	if(m_Ninja.m_ActivationTick < Server()->Tick()-1 && m_LastNinjaSound < Server()->Tick() - Server()->TickSpeed() * 0.7f)
 	{
-		CGameContext::CreateSound(Events(), m_Pos, SOUND_PICKUP_NINJA);
+		GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_NINJA);
 		m_LastNinjaSound = Server()->Tick();
 	}
 	m_Ninja.m_ActivationTick = Server()->Tick();
@@ -645,8 +645,8 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 
 	if(Triggers.m_TeleFlags&CCollision::TRIGGERFLAG_TELEPORT)
 	{
-		CGameContext::CreatePlayerTeleport(Events(), Triggers.m_TeleInPos);
-		CGameContext::CreatePlayerTeleport(Events(), Triggers.m_TeleOutPos);
+		GameServer()->CreatePlayerTeleport(Events(), Triggers.m_TeleInPos);
+		GameServer()->CreatePlayerTeleport(Events(), Triggers.m_TeleOutPos);
 	}
 	if(Triggers.m_TeleFlags&CCollision::TRIGGERFLAG_STOP_NINJA)
 		m_Ninja.m_CurrentMoveTime = -1;
@@ -778,16 +778,15 @@ void CCharacter::Die(int Killer, int Weapon)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
 	// a nice sound
-	CGameContext::CreateSound(Events(), m_Pos, SOUND_PLAYER_DIE);
+	GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_DIE);
 
 	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
-	CGameContext::CreateDeath(Events(), m_Pos, m_pPlayer->GetCID());
+	GameServer()->CreateDeath(Events(), m_Pos, m_pPlayer->GetCID());
 
-	// TODO DDRace why this?
 	GameWorld()->OnPlayerDeath();
 }
 
@@ -802,12 +801,11 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 		Unfreeze();
 
 	// m_pPlayer only inflicts half damage on self
-	// TODO DDRace if DDRace and Dmg
 	if(From == m_pPlayer->GetCID() && Dmg)
 		Dmg = max(1, Dmg/2);
 
 	int OldHealth = m_Health, OldArmor = m_Armor;
-	if(Dmg)
+	if(Dmg && !GameServer()->IsDDRace())
 	{
 		if(m_Armor)
 		{
@@ -832,9 +830,9 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 		m_Health -= Dmg;
 	}
 
-	// TODO DDRace if DDRace
 	// create healthmod indicator
-	CGameContext::CreateDamage(Events(), m_Pos, m_pPlayer->GetCID(), Source, OldHealth-m_Health, OldArmor-m_Armor, From == m_pPlayer->GetCID());
+	if (!GameServer()->IsDDRace())
+		GameServer()->CreateDamage(Events(), m_Pos, m_pPlayer->GetCID(), Source, OldHealth-m_Health, OldArmor-m_Armor, From == m_pPlayer->GetCID());
 
 	// do damage Hit sound
 	if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
@@ -846,9 +844,8 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 				GameServer()->m_apPlayers[i]->GetSpectatorID() == From)
 				Mask |= CmaskOne(i);
 		}
-		// TODO DDRace if ddrace
-		if(Dmg > 0)
-			CGameContext::CreateSound(Events(), GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
+		if(Dmg > 0 && !GameServer()->IsDDRace())
+			GameServer()->CreateSound(Events(), GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
 	}
 
 	// check for death
@@ -870,10 +867,10 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 		return false;
 	}
 
-	if (Dmg > 2)
-		CGameContext::CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG);
-	else if (Dmg > 0) // TODO DDRace and ddrace
-		CGameContext::CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_SHORT);
+	if (Dmg > 2 && !GameServer()->IsDDRace())
+		GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG);
+	else if (Dmg > 0 && !GameServer()->IsDDRace())
+		GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_SHORT);
 
 	m_EmoteType = EMOTE_PAIN;
 	m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;

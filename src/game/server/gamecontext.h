@@ -132,13 +132,13 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	static void CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self);
-	static void CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, vec2 Pos, int Owner, int Weapon, int MaxDamage, bool OnlySelf);
-	static void CreateHammerHit(CEventHandler *pEvents, vec2 Pos);
-	static void CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos);
-	static void CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos);
-	static void CreateDeath(CEventHandler *pEvents, vec2 Pos, int Who);
-	static void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int64 Mask=-1, int SoloClientID=-1);
+	void CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self);
+	void CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, vec2 Pos, int Owner, int Weapon, int MaxDamage, bool OnlySelf);
+	void CreateHammerHit(CEventHandler *pEvents, vec2 Pos);
+	void CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos);
+	void CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos);
+	void CreateDeath(CEventHandler *pEvents, vec2 Pos, int Who);
+	void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int64 Mask=-1, int SoloClientID=-1);
 
 	// network
 	void SendChat(int ChatterClientID, int Mode, int To, const char *pText);

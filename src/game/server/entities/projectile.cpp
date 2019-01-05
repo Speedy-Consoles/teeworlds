@@ -117,10 +117,10 @@ void CProjectile::Tick()
 		if(pTargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos))
 		{
 			if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
-				CGameContext::CreateSound(Events(), CurPos, m_SoundImpact, -1, m_OnlySelf ? m_Owner : -1);
+				GameServer()->CreateSound(Events(), CurPos, m_SoundImpact, -1, m_OnlySelf ? m_Owner : -1);
 
 			if(m_Explosive)
-				CGameContext::CreateExplosion(Events(), GameWorld(), CurPos, m_Owner, m_Weapon, true, m_OnlySelf);
+				GameServer()->CreateExplosion(Events(), GameWorld(), CurPos, m_Owner, m_Weapon, m_Damage, m_OnlySelf);
 
 			else if(pTargetChr)
 				pTargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Direction*-1, m_Damage, m_Owner, m_Weapon);
