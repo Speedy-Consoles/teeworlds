@@ -25,6 +25,37 @@ public:
 		m_DataFile.Close();
 	}
 
+	void DecompressLayer(int ItemIndex)
+	{
+		CMapItemLayer *pLayer = static_cast<CMapItemLayer *>(m_DataFile.GetItem(ItemIndex, 0, 0));
+
+		if(pLayer->m_Type == LAYERTYPE_TILES)
+		{
+			CMapItemLayerTilemap *pTilemap = reinterpret_cast<CMapItemLayerTilemap *>(pLayer);
+
+			if(pTilemap->m_Version > 3)
+			{
+				CTile *pTiles = static_cast<CTile *>(mem_alloc(pTilemap->m_Width * pTilemap->m_Height * sizeof(CTile), 1));
+
+				// extract original tile data
+				int i = 0;
+				CTile *pSavedTiles = static_cast<CTile *>(m_DataFile.GetData(pTilemap->m_Data));
+				while(i < pTilemap->m_Width * pTilemap->m_Height)
+				{
+					for(unsigned Counter = 0; Counter <= pSavedTiles->m_Skip && i < pTilemap->m_Width * pTilemap->m_Height; Counter++)
+					{
+						pTiles[i] = *pSavedTiles;
+						pTiles[i++].m_Skip = 0;
+					}
+
+					pSavedTiles++;
+				}
+
+				m_DataFile.ReplaceData(pTilemap->m_Data, reinterpret_cast<char *>(pTiles));
+			}
+		}
+	}
+
 	virtual bool Load(const char *pMapName, IStorage *pStorage)
 	{
 		if(!pStorage)
@@ -46,37 +77,12 @@ public:
 		{
 			CMapItemGroup *pGroup = static_cast<CMapItemGroup *>(m_DataFile.GetItem(GroupsStart + g, 0, 0));
 			for(int l = 0; l < pGroup->m_NumLayers; l++)
-			{
-				CMapItemLayer *pLayer = static_cast<CMapItemLayer *>(m_DataFile.GetItem(LayersStart + pGroup->m_StartLayer + l, 0, 0));
-
-				if(pLayer->m_Type == LAYERTYPE_TILES)
-				{
-					CMapItemLayerTilemap *pTilemap = reinterpret_cast<CMapItemLayerTilemap *>(pLayer);
-					
-					if(pTilemap->m_Version > 3)
-					{
-						CTile *pTiles = static_cast<CTile *>(mem_alloc(pTilemap->m_Width * pTilemap->m_Height * sizeof(CTile), 1));
-
-						// extract original tile data
-						int i = 0;
-						CTile *pSavedTiles = static_cast<CTile *>(m_DataFile.GetData(pTilemap->m_Data));
-						while(i < pTilemap->m_Width * pTilemap->m_Height)
-						{
-							for(unsigned Counter = 0; Counter <= pSavedTiles->m_Skip && i < pTilemap->m_Width * pTilemap->m_Height; Counter++)
-							{
-								pTiles[i] = *pSavedTiles;
-								pTiles[i++].m_Skip = 0;
-							}
-
-							pSavedTiles++;
-						}
-
-						m_DataFile.ReplaceData(pTilemap->m_Data, reinterpret_cast<char *>(pTiles));
-					}
-				}
-			}
-			
+				DecompressLayer(LayersStart + pGroup->m_StartLayer + l);
 		}
+		int DDRLayersStart, DDRLayersNum;
+		m_DataFile.GetType(MAPITEMTYPE_DDR_LAYER, &DDRLayersStart, &DDRLayersNum);
+		for(int l = 0; l < DDRLayersNum; l++)
+			DecompressLayer(DDRLayersStart + l);
 		
 		return true;
 	}

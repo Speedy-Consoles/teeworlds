@@ -20,8 +20,9 @@ class CCollision
 	int m_NumCheckpoints;
 
 	int GetSwitchGroup(int PosIndex, int Layer) const;
-	ivec2 GetTilePos(float x, float y) const;
-	int GetPosIndex(int x, int y, int Layer) const;
+	ivec2 PosToTilePos(float x, float y) const;
+	int TilePosToIndex(int x, int y, int Layer) const;
+	int PosToIndex(float x, float y, int Layer) const;
 	int GetDirFlags(ivec2 Dir) const;
 
 public:

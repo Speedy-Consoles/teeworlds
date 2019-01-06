@@ -284,18 +284,10 @@ void CMapLayers::OnRender()
 			bool Render = false;
 			bool IsGameLayer = false;
 
-			if(pLayer == (CMapItemLayer*)pLayers->VanillaLayer())
-				IsGameLayer = true;
-			else
+			if(pLayer->m_Type == LAYERTYPE_TILES && (((CMapItemLayerTilemap *) pLayer)->m_Flags & TILESLAYERFLAG_GAME))
 			{
-				for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
-				{
-					if(pLayer == (CMapItemLayer*)pLayers->GameLayer(t))
-					{
-						IsGameLayer = true;
-						PassedGameLayer = 1;
-					}
-				}
+				IsGameLayer = true;
+				PassedGameLayer = 1;
 			}
 
 			// skip rendering if detail layers if not wanted

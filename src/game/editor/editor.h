@@ -398,7 +398,7 @@ public:
 
 	// io
 	int Save(class IStorage *pStorage, const char *pFilename);
-	void WriteVanillaLayer(CDataFileWriter* pDataFileWriter, CLayerTiles* pCollisionLayer, int* pLayerCount);
+	void WriteVanillaLayer(CDataFileWriter* pDataFileWriter, CLayerTiles* pCollisionLayer, int pLayerCount);
 	int Load(class IStorage *pStorage, const char *pFilename, int StorageType);
 };
 
