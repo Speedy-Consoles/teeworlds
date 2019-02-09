@@ -32,12 +32,18 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 	for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
 	{
 		CMapItemLayerTilemap *pTileMap = m_pLayers->GameLayer(t);
-		if (!pTileMap)
-			continue;
-
-		m_aWidth[t] = pTileMap->m_Width;
-		m_aHeight[t] = pTileMap->m_Height;
-		m_apTiles[t] = static_cast<CTile *>(m_pLayers->Map()->GetData(pTileMap->m_Data));
+		if (pTileMap)
+		{
+			m_aWidth[t] = pTileMap->m_Width;
+			m_aHeight[t] = pTileMap->m_Height;
+			m_apTiles[t] = static_cast<CTile *>(m_pLayers->Map()->GetData(pTileMap->m_Data));
+		}
+		else
+		{
+			m_aWidth[t] = 0;
+			m_aHeight[t] = 0;
+			m_apTiles[t] = 0;
+		}
 	}
 
 	for(int i = 0; i < m_aWidth[GAMELAYERTYPE_COLLISION]*m_aHeight[GAMELAYERTYPE_COLLISION]; i++)
