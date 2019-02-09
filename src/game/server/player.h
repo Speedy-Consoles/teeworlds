@@ -67,6 +67,8 @@ public:
 
 	bool m_RespawnDisabled;
 
+	bool m_HasDDRaceClient;
+
 	//
 	int m_Vote;
 	int m_VotePos;

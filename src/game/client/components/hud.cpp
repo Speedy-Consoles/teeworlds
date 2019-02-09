@@ -554,7 +554,7 @@ void CHud::RenderNinjaBar(float x, float y, float Progress)
 	Graphics()->QuadsDrawTL(&QuadEndEmpty, 1);
 }
 
-void CHud::RenderHealthAndAmmo(const CNetObj_Character *pCharacter)
+void CHud::RenderHealthAndAmmo(const CNetObj_DDRaceCharacter *pCharacter)
 {
 	if(!pCharacter)
 		return;

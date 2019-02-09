@@ -40,6 +40,7 @@ class CGameContext : public IGameServer
 	CLayers m_Layers;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
+	CDDRaceTuningParams m_DDRaceTuning;
 
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneReset(IConsole::IResult *pResult, void *pUserData);
@@ -77,6 +78,7 @@ public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
 	CTuningParams *Tuning() { return &m_Tuning; }
+	CDDRaceTuningParams *DDRaceTuning() { return &m_DDRaceTuning; }
 	CGameWorld *GetWorld(int WorldID) { return &m_aWorlds[WorldID]; }
 
 	CGameContext();
@@ -92,6 +94,7 @@ public:
 	class CCharacter *GetPlayerChar(int ClientID);
 	int GetPlayerWorldID(int ClientID);
 	bool IsDDRace();
+	bool DoesPlayerHaveDDRaceClient(int ClientID);
 
 	void ResetPlayers(CGameWorld *pWorld);
 
@@ -132,13 +135,13 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self);
+	void CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self, int SoloClientID);
 	void CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, vec2 Pos, int Owner, int Weapon, int MaxDamage, bool OnlySelf);
-	void CreateHammerHit(CEventHandler *pEvents, vec2 Pos);
-	void CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos);
-	void CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos);
-	void CreateDeath(CEventHandler *pEvents, vec2 Pos, int Who);
-	void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int64 Mask=-1, int SoloClientID=-1);
+	void CreateHammerHit(CEventHandler *pEvents, vec2 Pos, int SoloClientID);
+	void CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos, int SoloClientID);
+	void CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos, int SoloClientID);
+	void CreateDeath(CEventHandler *pEvents, vec2 Pos, int Who, int SoloClientID);
+	void CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int SoloClientID, int64 Mask=-1);
 
 	// network
 	void SendChat(int ChatterClientID, int Mode, int To, const char *pText);

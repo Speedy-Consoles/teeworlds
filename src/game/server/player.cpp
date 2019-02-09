@@ -32,6 +32,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, bool Dummy)
 	m_Dummy = Dummy;
 	m_IsReadyToPlay = !GameServer()->m_pController->IsPlayerReadyMode();
 	m_RespawnDisabled = GameServer()->m_pController->GetStartRespawnState();
+	m_HasDDRaceClient = false;
 	m_DeadSpecMode = false;
 	m_Spawning = 0;
 }
@@ -449,7 +450,6 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 
 	if(Team == TEAM_SPECTATORS)
 	{
-		m_WorldID = -1;
 		// update spectator modes
 		for(int i = 0; i < MAX_CLIENTS; ++i)
 		{
@@ -484,5 +484,5 @@ void CPlayer::TryRespawn()
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(GameServer()->GetWorld(m_WorldID));
 	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(GameServer()->GetWorld(m_WorldID)->Events(), SpawnPos);
+	GameServer()->CreatePlayerSpawn(GameServer()->GetWorld(m_WorldID)->Events(), SpawnPos, -1);
 }

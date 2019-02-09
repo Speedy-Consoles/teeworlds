@@ -354,9 +354,9 @@ int CGameClient::OnSnapInput(int *pData)
 void CGameClient::OnConnected()
 {
 	m_Layers.Init(Kernel());
-	m_aCollision[0].Init(Layers(), m_aaSwitchStates[0]);
+	m_aCollision[0].Init(Layers(), m_aaDDRaceSwitchStates[0]);
 	for(int i = 0; i < NUM_WORLDS; i++)
-		m_aCollision[i].Init(&m_aCollision[0], m_aaSwitchStates[i]);
+		m_aCollision[i].Init(&m_aCollision[0], m_aaDDRaceSwitchStates[i]);
 
 	RenderTools()->RenderTilemapGenerateSkip(Layers());
 
@@ -391,6 +391,7 @@ void CGameClient::OnReset()
 	m_DemoSpecMode = SPEC_FREEVIEW;
 	m_DemoSpecID = -1;
 	m_Tuning = CTuningParams();
+	m_DDRaceTuning = CDDRaceTuningParams();
 	m_MuteServerBroadcast = false;
 }
 
@@ -441,12 +442,12 @@ void CGameClient::UpdatePositions()
 	}
 }
 
-void CGameClient::EvolveCharacter(CNetObj_Character *pCharacter, int Tick)
+void CGameClient::EvolveCharacter(CNetObj_DDRaceCharacter *pCharacter, int Tick)
 {
 	CWorldCore TempWorld;
 	CCharacterCore TempCore;
 	mem_zero(&TempCore, sizeof(TempCore));
-	TempCore.Init(&TempWorld, GetDDRTeamCollision(pCharacter->m_World));
+	TempCore.Init(&TempWorld, GetDDRTeamCollision(pCharacter->m_WorldID));
 	TempCore.Read(pCharacter);
 
 	while(pCharacter->m_Tick < Tick)
@@ -502,6 +503,23 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker)
 
 		// apply new tuning
 		m_Tuning = NewTuning;
+		return;
+	}
+	else if(MsgId == NETMSGTYPE_SV_DDRACETUNEPARAMS && Client()->State() != IClient::STATE_DEMOPLAYBACK)
+	{
+		Client()->RecordGameMessage(false);
+		// unpack the new tuning
+		CDDRaceTuningParams NewTuning;
+		int *pParams = (int *)&NewTuning;
+		for(unsigned i = 0; i < sizeof(CDDRaceTuningParams)/sizeof(int); i++)
+			pParams[i] = pUnpacker->GetInt();
+
+		// check for unpacking errors
+		if(pUnpacker->Error())
+			return;
+
+		// apply new tuning
+		m_DDRaceTuning = NewTuning;
 		return;
 	}
 	else if(MsgId == NETMSGTYPE_SV_VOTEOPTIONLISTADD)
@@ -849,39 +867,69 @@ void CGameClient::ProcessEvents()
 		if(Item.m_Type == NETEVENTTYPE_DAMAGE)
 		{
 			CNetEvent_Damage *ev = (CNetEvent_Damage *)pData;
-			m_pEffects->DamageIndicator(vec2(ev->m_X, ev->m_Y), ev->m_HealthAmount + ev->m_ArmorAmount, ev->m_World);
+			m_pEffects->DamageIndicator(vec2(ev->m_X, ev->m_Y), ev->m_HealthAmount + ev->m_ArmorAmount, 0);
+		}
+		else if(Item.m_Type == NETEVENTTYPE_DDRACEDAMAGE)
+		{
+			CNetEvent_DDRaceDamage *ev = (CNetEvent_DDRaceDamage *)pData;
+			m_pEffects->DamageIndicator(vec2(ev->m_X, ev->m_Y), ev->m_HealthAmount + ev->m_ArmorAmount, ev->m_WorldID);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_EXPLOSION)
 		{
 			CNetEvent_Explosion *ev = (CNetEvent_Explosion *)pData;
-			m_pEffects->Explosion(vec2(ev->m_X, ev->m_Y), ev->m_World,
+			m_pEffects->Explosion(vec2(ev->m_X, ev->m_Y), 0, false);
+		}
+		else if(Item.m_Type == NETEVENTTYPE_DDRACEEXPLOSION)
+		{
+			CNetEvent_DDRaceExplosion *ev = (CNetEvent_DDRaceExplosion *)pData;
+			m_pEffects->Explosion(vec2(ev->m_X, ev->m_Y), ev->m_WorldID,
 					ev->m_SoloClientID != m_LocalClientID && (m_PredictedChar.m_Solo || ev->m_SoloClientID != -1));
 		}
 		else if(Item.m_Type == NETEVENTTYPE_HAMMERHIT)
 		{
 			CNetEvent_HammerHit *ev = (CNetEvent_HammerHit *)pData;
-			m_pEffects->HammerHit(vec2(ev->m_X, ev->m_Y), ev->m_World);
+			m_pEffects->HammerHit(vec2(ev->m_X, ev->m_Y), 0);
+		}
+		else if(Item.m_Type == NETEVENTTYPE_DDRACEHAMMERHIT)
+		{
+			CNetEvent_DDRaceHammerHit *ev = (CNetEvent_DDRaceHammerHit *)pData;
+			m_pEffects->HammerHit(vec2(ev->m_X, ev->m_Y), ev->m_WorldID);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_SPAWN)
 		{
 			CNetEvent_Spawn *ev = (CNetEvent_Spawn *)pData;
-			m_pEffects->PlayerSpawn(vec2(ev->m_X, ev->m_Y), ev->m_World);
+			m_pEffects->PlayerSpawn(vec2(ev->m_X, ev->m_Y), 0);
+		}
+		else if(Item.m_Type == NETEVENTTYPE_DDRACESPAWN)
+		{
+			CNetEvent_DDRaceSpawn *ev = (CNetEvent_DDRaceSpawn *)pData;
+			m_pEffects->PlayerSpawn(vec2(ev->m_X, ev->m_Y), ev->m_WorldID);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_DEATH)
 		{
 			CNetEvent_Death *ev = (CNetEvent_Death *)pData;
-			m_pEffects->PlayerDeath(vec2(ev->m_X, ev->m_Y), ev->m_ClientID, ev->m_World);
+			m_pEffects->PlayerDeath(vec2(ev->m_X, ev->m_Y), ev->m_ClientID, 0);
+		}
+		else if(Item.m_Type == NETEVENTTYPE_DDRACEDEATH)
+		{
+			CNetEvent_DDRaceDeath *ev = (CNetEvent_DDRaceDeath *)pData;
+			m_pEffects->PlayerDeath(vec2(ev->m_X, ev->m_Y), ev->m_ClientID, ev->m_WorldID);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_SOUNDWORLD)
 		{
 			CNetEvent_SoundWorld *ev = (CNetEvent_SoundWorld *)pData;
-			if(ev->m_World == m_LocalWorldID && (ev->m_SoloClientID == m_LocalClientID || (!m_PredictedChar.m_Solo && ev->m_SoloClientID == -1)))
+			m_pSounds->PlayAt(CSounds::CHN_WORLD, ev->m_SoundID, 1.0f, vec2(ev->m_X, ev->m_Y));
+		}
+		else if(Item.m_Type == NETEVENTTYPE_DDRACESOUNDWORLD)
+		{
+			CNetEvent_DDRaceSoundWorld *ev = (CNetEvent_DDRaceSoundWorld *)pData;
+			if(ev->m_WorldID == m_LocalWorldID && (ev->m_SoloClientID == m_LocalClientID || (!m_PredictedChar.m_Solo && ev->m_SoloClientID == -1)))
 				m_pSounds->PlayAt(CSounds::CHN_WORLD, ev->m_SoundID, 1.0f, vec2(ev->m_X, ev->m_Y));
 		}
-		else if(Item.m_Type == NETEVENTTYPE_TELEPORT)
+		else if(Item.m_Type == NETEVENTTYPE_DDRACETELEPORT)
 		{
-			CNetEvent_Teleport *ev = (CNetEvent_Teleport *)pData;
-			m_pEffects->PlayerTeleport(vec2(ev->m_X, ev->m_Y), ev->m_World);
+			CNetEvent_DDRaceTeleport *ev = (CNetEvent_DDRaceTeleport *)pData;
+			m_pEffects->PlayerTeleport(vec2(ev->m_X, ev->m_Y), ev->m_WorldID);
 		}
 	}
 }
@@ -901,7 +949,7 @@ void CGameClient::ProcessTriggeredEvents(int Events, vec2 Pos, int WorldID, bool
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_ATTACH_GROUND, 1.0f, Pos);
 	if(Events&COREEVENTFLAG_HOOK_HIT_NOHOOK && WorldID == m_LocalWorldID && !Solo)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_NOATTACH, 1.0f, Pos);
-	if(Events&COREEVENTFLAG_SPEEDUP)
+	if(Events&COREEVENTFLAG_DDRACE_SPEEDUP)
 		m_pEffects->Speedup(Pos, WorldID, Solo);
 	/*if(Events&COREEVENTFLAG_HOOK_LAUNCH)
 		m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_HOOK_LOOP, 1.0f, Pos);
@@ -955,9 +1003,11 @@ void CGameClient::OnNewSnapshot()
 	}
 
 	CTuningParams StandardTuning;
+	CDDRaceTuningParams StandardDDRaceTuning;
 	if(Client()->State() == IClient::STATE_DEMOPLAYBACK)
 	{
 		m_Tuning = StandardTuning;
+		m_DDRaceTuning = StandardDDRaceTuning;
 		mem_zero(&m_GameInfo, sizeof(m_GameInfo));
 	}
 
@@ -1018,6 +1068,11 @@ void CGameClient::OnNewSnapshot()
 					mem_copy(&m_Tuning, pInfo->m_aTuneParams, sizeof(m_Tuning));
 					m_ServerMode = SERVERMODE_PURE;
 				}
+				else if(Item.m_Type == NETOBJTYPE_DE_DDRACETUNEPARAMS)
+				{
+					const CNetObj_De_DDRaceTuneParams *pInfo = (const CNetObj_De_DDRaceTuneParams *)pData;
+					mem_copy(&m_DDRaceTuning, pInfo->m_aTuneParams, sizeof(m_DDRaceTuning));
+				}
 			}
 
 			// network items
@@ -1045,14 +1100,36 @@ void CGameClient::OnNewSnapshot()
 					}
 				}
 			}
-			else if(Item.m_Type == NETOBJTYPE_CHARACTER)
+			else if(Item.m_Type == NETOBJTYPE_CHARACTER || Item.m_Type == NETOBJTYPE_DDRACECHARACTER)
 			{
 				if(Item.m_ID < MAX_CLIENTS)
 				{
-					const void *pOld = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_CHARACTER, Item.m_ID);
-					m_Snap.m_aCharacters[Item.m_ID].m_Cur = *((const CNetObj_Character *)pData);
+					const void *pOld = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_DDRACECHARACTER, Item.m_ID);
+					CNetObj_DDRaceCharacter TmpOldCharacter;
+					if (!pOld)
+					{
+						const void *pTmp = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_CHARACTER, Item.m_ID);
+						if (pTmp)
+						{
+							TmpOldCharacter = CNetObj_DDRaceCharacter::FromVanilla ((const CNetObj_Character *)pTmp);
+							pOld = &TmpOldCharacter;
+						}
+					}
+
+					const CNetObj_DDRaceCharacter *pCurrent = (const CNetObj_DDRaceCharacter *)pData;
+					CNetObj_DDRaceCharacter TmpNewCharacter;
+					if(Item.m_Type == NETOBJTYPE_CHARACTER)
+					{
+						const CNetObj_Character *pTmp = (const CNetObj_Character *)pData;
+						if (pTmp)
+						{
+							TmpNewCharacter = CNetObj_DDRaceCharacter::FromVanilla ((const CNetObj_Character *)pTmp);
+							pCurrent = &TmpNewCharacter;
+						}
+					}
+					m_Snap.m_aCharacters[Item.m_ID].m_Cur = *pCurrent;
 					if(Item.m_ID == m_LocalClientID)
-						m_LocalWorldID = ((const CNetObj_Character *)pData)->m_World;
+						m_LocalWorldID = pCurrent->m_WorldID;
 
 					// clamp ammo count for non ninja weapon
 					if(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Weapon != WEAPON_NINJA)
@@ -1061,7 +1138,7 @@ void CGameClient::OnNewSnapshot()
 					if(pOld)
 					{
 						m_Snap.m_aCharacters[Item.m_ID].m_Active = true;
-						m_Snap.m_aCharacters[Item.m_ID].m_Prev = *((const CNetObj_Character *)pOld);
+						m_Snap.m_aCharacters[Item.m_ID].m_Prev = *((const CNetObj_DDRaceCharacter *)pOld);
 
 						if(m_Snap.m_aCharacters[Item.m_ID].m_Prev.m_Tick)
 							EvolveCharacter(&m_Snap.m_aCharacters[Item.m_ID].m_Prev, Client()->PrevGameTick());
@@ -1072,9 +1149,9 @@ void CGameClient::OnNewSnapshot()
 					if(Item.m_ID != m_LocalClientID || Client()->State() == IClient::STATE_DEMOPLAYBACK)
 						ProcessTriggeredEvents(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_TriggeredEvents,
 								vec2(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_X,m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Y),
-								m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_World,
-								m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Flags&COREFLAG_SOLO
-									|| m_Snap.m_aCharacters[m_LocalClientID].m_Cur.m_Flags&COREFLAG_SOLO);
+								m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_WorldID,
+								m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Flags&COREFLAG_DDRACE_SOLO
+									|| m_Snap.m_aCharacters[m_LocalClientID].m_Cur.m_Flags&COREFLAG_DDRACE_SOLO);
 				}
 			}
 			else if(Item.m_Type == NETOBJTYPE_SPECTATORINFO)
@@ -1107,11 +1184,11 @@ void CGameClient::OnNewSnapshot()
 			}
 			else if(Item.m_Type == NETOBJTYPE_FLAG)
 				m_Snap.m_paFlags[Item.m_ID%2] = (const CNetObj_Flag *)pData;
-			else if(Item.m_Type == NETOBJTYPE_SWITCHSTATES)
+			else if(Item.m_Type == NETOBJTYPE_DDRACESWITCHSTATES)
 			{
-				const CNetObj_SwitchStates *pStates = ((const CNetObj_SwitchStates *)pData);
+				const CNetObj_DDRaceSwitchStates *pStates = ((const CNetObj_DDRaceSwitchStates *)pData);
 				for(int i = 0; i < 255; i++)
-					m_aaSwitchStates[Item.m_ID][i] = pStates->m_aStates[i/8] & (1 << (i % 8));
+					m_aaDDRaceSwitchStates[Item.m_ID][i] = pStates->m_aStates[i/8] & (1 << (i % 8));
 			}
 		}
 	}
@@ -1244,6 +1321,16 @@ void CGameClient::OnDemoRecSnap()
 		mem_copy(pTuneParams->m_aTuneParams, &m_Tuning, sizeof(pTuneParams->m_aTuneParams));
 	}
 
+	CDDRaceTuningParams StandardDDRaceTuning;
+	if(mem_comp(&StandardDDRaceTuning, &m_DDRaceTuning, sizeof(CDDRaceTuningParams)) != 0)
+	{
+		CNetObj_De_DDRaceTuneParams *pTuneParams = static_cast<CNetObj_De_DDRaceTuneParams *>(Client()->SnapNewItem(NETOBJTYPE_DE_DDRACETUNEPARAMS, 0, sizeof(CNetObj_De_DDRaceTuneParams)));
+		if(!pTuneParams)
+			return;
+
+		mem_copy(pTuneParams->m_aTuneParams, &m_DDRaceTuning, sizeof(pTuneParams->m_aTuneParams));
+	}
+
 	// add game info
 	CNetObj_De_GameInfo *pGameInfo = static_cast<CNetObj_De_GameInfo *>(Client()->SnapNewItem(NETOBJTYPE_DE_GAMEINFO, 0, sizeof(CNetObj_De_GameInfo)));
 	if(!pGameInfo)
@@ -1279,6 +1366,7 @@ void CGameClient::OnPredict()
 	// repredict character
 	CWorldCore World;
 	World.m_Tuning = m_Tuning;
+	World.m_DDRaceTuning = m_DDRaceTuning;
 
 	// search for players
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -1286,7 +1374,7 @@ void CGameClient::OnPredict()
 		if(!m_Snap.m_aCharacters[i].m_Active)
 			continue;
 
-		m_aClients[i].m_Predicted.Init(&World, GetDDRTeamCollision(m_Snap.m_pLocalCharacter->m_World));
+		m_aClients[i].m_Predicted.Init(&World, GetDDRTeamCollision(m_Snap.m_pLocalCharacter->m_WorldID));
 		World.m_apCharacters[i] = &m_aClients[i].m_Predicted;
 		m_aClients[i].m_Predicted.Read(&m_Snap.m_aCharacters[i].m_Cur);
 	}
@@ -1343,16 +1431,16 @@ void CGameClient::OnPredict()
 
 	if(g_Config.m_Debug && g_Config.m_ClPredict && m_PredictedTick == Client()->PredGameTick())
 	{
-		CNetObj_CharacterCore Before = {0}, Now = {0}, BeforePrev = {0}, NowPrev = {0};
+		CNetObj_DDRaceCharacterCore Before = {0}, Now = {0}, BeforePrev = {0}, NowPrev = {0};
 		BeforeChar.Write(&Before);
 		BeforePrevChar.Write(&BeforePrev);
 		m_PredictedChar.Write(&Now);
 		m_PredictedPrevChar.Write(&NowPrev);
 
-		if(mem_comp(&Before, &Now, sizeof(CNetObj_CharacterCore)) != 0)
+		if(mem_comp(&Before, &Now, sizeof(CNetObj_DDRaceCharacterCore)) != 0)
 		{
 			Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client", "prediction error");
-			for(unsigned i = 0; i < sizeof(CNetObj_CharacterCore)/sizeof(int); i++)
+			for(unsigned i = 0; i < sizeof(CNetObj_DDRaceCharacterCore)/sizeof(int); i++)
 				if(((int *)&Before)[i] != ((int *)&Now)[i])
 				{
 					char aBuf[256];
@@ -1495,6 +1583,9 @@ void CGameClient::SendSwitchTeam(int Team)
 
 void CGameClient::SendStartInfo()
 {
+	CNetMsg_Cl_DDRaceGotDDRaceClient Msg2;
+	Client()->SendPackMsg(&Msg2, MSGFLAG_VITAL|MSGFLAG_FLUSH);
+
 	CNetMsg_Cl_StartInfo Msg;
 	Msg.m_pName = g_Config.m_PlayerName;
 	Msg.m_pClan = g_Config.m_PlayerClan;
@@ -1539,20 +1630,20 @@ void CGameClient::ConTeam(IConsole::IResult *pResult, void *pUserData)
 
 void CGameClient::SendNewRaceTeam()
 {
-	CNetMsg_Cl_NewRaceTeam Msg;
+	CNetMsg_Cl_DDRaceNewRaceTeam Msg;
 	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
 }
 
 void CGameClient::SendJoinRaceTeam(int ClientID)
 {
-	CNetMsg_Cl_JoinRaceTeam Msg;
+	CNetMsg_Cl_DDRaceJoinRaceTeam Msg;
 	Msg.m_ClientID = ClientID;
 	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
 }
 
 void CGameClient::SendLeaveRaceTeam()
 {
-	CNetMsg_Cl_LeaveRaceTeam Msg;
+	CNetMsg_Cl_DDRaceLeaveRaceTeam Msg;
 	Client()->SendPackMsg(&Msg, MSGFLAG_VITAL);
 }
 

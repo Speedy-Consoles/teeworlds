@@ -20,8 +20,8 @@ CEntity::CEntity(CGameWorld *pGameWorld, int ObjType, vec2 Pos, int ProximityRad
 	m_MarkedForDestroy = false;
 	m_Pos = Pos;
 
-	m_SwitchGroup = SwitchGroup;
-	m_InvertSwitch = InvertSwitch;
+	m_DDRaceSwitchGroup = SwitchGroup;
+	m_DDRaceInvertSwitch = InvertSwitch;
 }
 
 CEntity::~CEntity()
@@ -60,10 +60,7 @@ int CEntity::NetworkClipped(int SnappingClient, vec2 CheckPos)
 
 bool CEntity::WorldVisible(int SnappingClient, int WorldID)
 {
-	if (SnappingClient == -1)
-		return WorldID == 0;
-	else
-		return WorldID == GameServer()->m_apPlayers[SnappingClient]->WorldID();
+	return SnappingClient == -1 || WorldID == GameServer()->m_apPlayers[SnappingClient]->WorldID();
 }
 
 bool CEntity::GameLayerClipped(vec2 CheckPos)
@@ -76,6 +73,6 @@ bool CEntity::GameLayerClipped(vec2 CheckPos)
 
 bool CEntity::Active()
 {
-	return m_SwitchGroup == -1 || (GameWorld()->m_aSwitchStates[m_SwitchGroup] && m_InvertSwitch)
-			|| (!GameWorld()->m_aSwitchStates[m_SwitchGroup] && !m_InvertSwitch);
+	return m_DDRaceSwitchGroup == -1 || (GameWorld()->m_aDDRaceSwitchStates[m_DDRaceSwitchGroup] && m_DDRaceInvertSwitch)
+			|| (!GameWorld()->m_aDDRaceSwitchStates[m_DDRaceSwitchGroup] && !m_DDRaceInvertSwitch);
 }

@@ -17,7 +17,7 @@ class CHud : public CComponent
 	void RenderTeambalanceWarning();
 	void RenderVoting();
 	void RenderNinjaBar(float x, float y, float Progress);
-	void RenderHealthAndAmmo(const CNetObj_Character *pCharacter);
+	void RenderHealthAndAmmo(const CNetObj_DDRaceCharacter *pCharacter);
 	void RenderGameTimer();
 	void RenderPauseTimer();
 	void RenderStartCountdown();

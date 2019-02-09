@@ -12,15 +12,15 @@ class CPlayers : public CComponent
 	float m_aFreezeFadeIntraTick[MAX_CLIENTS];
 
 	void RenderPlayer(
-		const CNetObj_Character *pPrevChar,
-		const CNetObj_Character *pPlayerChar,
+		const CNetObj_DDRaceCharacter *pPrevChar,
+		const CNetObj_DDRaceCharacter *pPlayerChar,
 		const CNetObj_PlayerInfo *pPrevInfo,
 		const CNetObj_PlayerInfo *pPlayerInfo,
 		int ClientID
 	);
 	void RenderHook(
-		const CNetObj_Character *pPrevChar,
-		const CNetObj_Character *pPlayerChar,
+		const CNetObj_DDRaceCharacter *pPrevChar,
+		const CNetObj_DDRaceCharacter *pPlayerChar,
 		const CNetObj_PlayerInfo *pPrevInfo,
 		const CNetObj_PlayerInfo *pPlayerInfo,
 		int ClientID

@@ -41,9 +41,9 @@ private:
 	bool m_MarkedForDestroy;
 
 protected:
-	int m_SwitchGroup;
+	int m_DDRaceSwitchGroup;
 	bool m_Persistent;
-	bool m_InvertSwitch;
+	bool m_DDRaceInvertSwitch;
 
 	/* State */
 

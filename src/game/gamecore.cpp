@@ -506,7 +506,7 @@ void CCharacterCore::HandleTriggers(CCollision::CTriggers Triggers)
 	}
 
 	if(Triggers.m_SpeedupFlags&CCollision::TRIGGERFLAG_SPEEDUP)
-		m_TriggeredEvents |= COREEVENTFLAG_SPEEDUP;
+		m_TriggeredEvents |= COREEVENTFLAG_DDRACE_SPEEDUP;
 
 	if(Triggers.m_Endless == CCollision::PROPERTEE_ON)
 		m_Endless = true;
@@ -524,8 +524,8 @@ void CCharacterCore::Freeze()
 	if(m_FreezeTick >= 0)
 	{
 		if(m_FreezeTick == 0)
-			m_TriggeredEvents |= COREEVENTFLAG_FREEZE;
-		m_FreezeTick = SERVER_TICK_SPEED * m_pWorld->m_Tuning.m_FreezeTime;
+			m_TriggeredEvents |= COREEVENTFLAG_DDRACE_FREEZE;
+		m_FreezeTick = SERVER_TICK_SPEED * m_pWorld->m_DDRaceTuning.m_FreezeTime;
 	}
 }
 
@@ -538,17 +538,17 @@ void CCharacterCore::Unfreeze()
 void CCharacterCore::DeepFreeze()
 {
 	if(m_FreezeTick == 0)
-		m_TriggeredEvents |= COREEVENTFLAG_FREEZE;
+		m_TriggeredEvents |= COREEVENTFLAG_DDRACE_FREEZE;
 	m_FreezeTick = -1;
 }
 
 void CCharacterCore::DeepUnfreeze()
 {
 	if(m_FreezeTick == -1)
-		m_FreezeTick = SERVER_TICK_SPEED * m_pWorld->m_Tuning.m_FreezeTime;
+		m_FreezeTick = SERVER_TICK_SPEED * m_pWorld->m_DDRaceTuning.m_FreezeTime;
 }
 
-void CCharacterCore::Write(CNetObj_CharacterCore *pObjCore)
+void CCharacterCore::Write(CNetObj_DDRaceCharacterCore *pObjCore)
 {
 	pObjCore->m_X = round_to_int(m_Pos.x);
 	pObjCore->m_Y = round_to_int(m_Pos.y);
@@ -563,13 +563,13 @@ void CCharacterCore::Write(CNetObj_CharacterCore *pObjCore)
 	pObjCore->m_HookDy = round_to_int(m_HookDir.y*256.0f);
 	pObjCore->m_HookedPlayer = m_HookedPlayer;
 	pObjCore->m_Jumped = m_Jumped;
-	pObjCore->m_FreezeTick = m_FreezeTick;
 	pObjCore->m_Direction = m_Direction;
 	pObjCore->m_Angle = m_Angle;
-	pObjCore->m_Flags = m_Solo ? COREFLAG_SOLO : 0;
+	pObjCore->m_FreezeTick = m_FreezeTick;
+	pObjCore->m_Flags = m_Solo ? COREFLAG_DDRACE_SOLO : 0;
 }
 
-void CCharacterCore::Read(const CNetObj_CharacterCore *pObjCore)
+void CCharacterCore::Read(const CNetObj_DDRaceCharacterCore *pObjCore)
 {
 	m_Pos.x = pObjCore->m_X;
 	m_Pos.y = pObjCore->m_Y;
@@ -583,15 +583,15 @@ void CCharacterCore::Read(const CNetObj_CharacterCore *pObjCore)
 	m_HookDir.y = pObjCore->m_HookDy/256.0f;
 	m_HookedPlayer = pObjCore->m_HookedPlayer;
 	m_Jumped = pObjCore->m_Jumped;
-	m_FreezeTick = pObjCore->m_FreezeTick;
 	m_Direction = pObjCore->m_Direction;
 	m_Angle = pObjCore->m_Angle;
-	m_Solo = pObjCore->m_Flags & COREFLAG_SOLO;
+	m_FreezeTick = pObjCore->m_FreezeTick;
+	m_Solo = pObjCore->m_Flags & COREFLAG_DDRACE_SOLO;
 }
 
 void CCharacterCore::Quantize()
 {
-	CNetObj_CharacterCore Core;
+	CNetObj_DDRaceCharacterCore Core;
 	Write(&Core);
 	Read(&Core);
 }

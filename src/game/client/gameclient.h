@@ -65,7 +65,7 @@ class CGameClient : public IGameClient
 	static void ConchainFriendUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainXmasHatUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
-	void EvolveCharacter(CNetObj_Character *pCharacter, int Tick);
+	void EvolveCharacter(CNetObj_DDRaceCharacter *pCharacter, int Tick);
 
 public:
 	IKernel *Kernel() { return IInterface::Kernel(); }
@@ -93,10 +93,11 @@ public:
 
 	bool m_SuppressEvents;
 
-	bool m_aaSwitchStates[NUM_WORLDS][255];
+	bool m_aaDDRaceSwitchStates[NUM_WORLDS][255];
 
 	// TODO: move this
 	CTuningParams m_Tuning;
+	CDDRaceTuningParams m_DDRaceTuning;
 
 	enum
 	{
@@ -124,8 +125,8 @@ public:
 	// snap pointers
 	struct CSnapState
 	{
-		const CNetObj_Character *m_pLocalCharacter;
-		const CNetObj_Character *m_pLocalPrevCharacter;
+		const CNetObj_DDRaceCharacter *m_pLocalCharacter;
+		const CNetObj_DDRaceCharacter *m_pLocalPrevCharacter;
 		const CNetObj_PlayerInfo *m_pLocalInfo;
 		const CNetObj_SpectatorInfo *m_pSpectatorInfo;
 		const CNetObj_SpectatorInfo *m_pPrevSpectatorInfo;
@@ -133,7 +134,7 @@ public:
 		const CNetObj_GameData *m_pGameData;
 		const CNetObj_GameDataTeam *m_pGameDataTeam;
 		const CNetObj_GameDataFlag *m_pGameDataFlag;
-		const CNetObj_SwitchStates *m_pSwitchStates;
+		const CNetObj_DDRaceSwitchStates *m_pDDRaceSwitchStates;
 		int m_GameDataFlagSnapID;
 
 		int m_NotReadyCount;
@@ -158,8 +159,8 @@ public:
 			bool m_Active;
 
 			// snapshots
-			CNetObj_Character m_Prev;
-			CNetObj_Character m_Cur;
+			CNetObj_DDRaceCharacter m_Prev;
+			CNetObj_DDRaceCharacter m_Cur;
 
 			// interpolated position
 			vec2 m_Position;

@@ -140,7 +140,7 @@ void CProjectile::TickPaused()
 	++m_StartTick;
 }
 
-void CProjectile::FillInfo(CNetObj_Projectile *pProj, int WorldID)
+void CProjectile::FillInfo(CNetObj_DDRaceProjectile *pProj, int WorldID)
 {
 	pProj->m_X = (int)m_Pos.x;
 	pProj->m_Y = (int)m_Pos.y;
@@ -148,7 +148,7 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj, int WorldID)
 	pProj->m_VelY = (int)(m_Direction.y*100.0f);
 	pProj->m_StartTick = m_StartTick;
 	pProj->m_Type = m_Type;
-	pProj->m_World = WorldID;
+	pProj->m_WorldID = WorldID;
 	pProj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
 }
 
@@ -162,7 +162,20 @@ void CProjectile::Snap(int SnappingClient, int WorldID)
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
 		return;
 
-	CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
-	if(pProj)
-		FillInfo(pProj, WorldID);
+	if (GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
+	{
+		CNetObj_DDRaceProjectile *pProj = static_cast<CNetObj_DDRaceProjectile *>(Server()->SnapNewItem(NETOBJTYPE_DDRACEPROJECTILE, GetID(), sizeof(CNetObj_DDRaceProjectile)));
+		if(pProj)
+			FillInfo(pProj, WorldID);
+	}
+	else if (!m_OnlySelf || m_Owner == SnappingClient)
+	{
+		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
+		if(pProj)
+		{
+			CNetObj_DDRaceProjectile pDDRaceProj;
+			FillInfo(&pDDRaceProj, WorldID);
+			*pProj = pDDRaceProj.ToVanilla();
+		}
+	}
 }

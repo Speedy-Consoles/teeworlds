@@ -47,6 +47,30 @@ public:
 	bool Get(const char *pName, float *pValue) const;
 };
 
+class CDDRaceTuningParams
+{
+public:
+	CDDRaceTuningParams()
+	{
+		//const float TicksPerSecond = 50.0f;
+		#define MACRO_TUNING_PARAM(Name,ScriptName,Value) m_##Name.Set((int)(Value*100.0f));
+		#include "ddrace_tuning.h"
+		#undef MACRO_TUNING_PARAM
+	}
+
+	static const char *m_apNames[];
+
+	#define MACRO_TUNING_PARAM(Name,ScriptName,Value) CTuneParam m_##Name;
+	#include "ddrace_tuning.h"
+	#undef MACRO_TUNING_PARAM
+
+	static int Num() { return sizeof(CTuningParams)/sizeof(int); }
+	bool Set(int Index, float Value);
+	bool Set(const char *pName, float Value);
+	bool Get(int Index, float *pValue) const;
+	bool Get(const char *pName, float *pValue) const;
+};
+
 inline void StrToInts(int *pInts, int Num, const char *pStr)
 {
 	int Index = 0;
@@ -141,6 +165,7 @@ public:
 	}
 
 	CTuningParams m_Tuning;
+	CDDRaceTuningParams m_DDRaceTuning;
 	class CCharacterCore *m_apCharacters[MAX_CLIENTS];
 };
 
@@ -184,8 +209,9 @@ public:
 	void DeepFreeze();
 	void DeepUnfreeze();
 
-	void Read(const CNetObj_CharacterCore *pObjCore);
-	void Write(CNetObj_CharacterCore *pObjCore);
+	void Read(const CNetObj_DDRaceCharacterCore *pObjCore);
+	void Write(CNetObj_DDRaceCharacterCore *pObjCore);
+
 	void Quantize();
 };
 

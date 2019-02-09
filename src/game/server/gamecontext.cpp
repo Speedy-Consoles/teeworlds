@@ -72,6 +72,7 @@ void CGameContext::Clear()
 	CVoteOptionServer *pVoteOptionLast = m_pVoteOptionLast;
 	int NumVoteOptions = m_NumVoteOptions;
 	CTuningParams Tuning = m_Tuning;
+	CDDRaceTuningParams DDRaceTuning = m_DDRaceTuning;
 
 	m_Resetting = true;
 	this->~CGameContext();
@@ -83,6 +84,7 @@ void CGameContext::Clear()
 	m_pVoteOptionLast = pVoteOptionLast;
 	m_NumVoteOptions = NumVoteOptions;
 	m_Tuning = Tuning;
+	m_DDRaceTuning = DDRaceTuning;
 }
 
 
@@ -105,6 +107,11 @@ bool CGameContext::IsDDRace()
 	return m_pController->IsDDRace();
 }
 
+bool CGameContext::DoesPlayerHaveDDRaceClient(int ClientID)
+{
+	return ClientID == -1 || m_apPlayers[ClientID]->m_HasDDRaceClient;
+}
+
 void CGameContext::ResetPlayers(CGameWorld *pWorld)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)
@@ -117,10 +124,14 @@ void CGameContext::ResetPlayers(CGameWorld *pWorld)
 	}
 }
 
-void CGameContext::CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self)
+void CGameContext::CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 Source, int HealthAmount, int ArmorAmount, bool Self, int SoloClientID)
 {
 	float f = angle(Source);
-	CNetEvent_Damage *pEvent = (CNetEvent_Damage *)pEvents->Create(NETEVENTTYPE_DAMAGE, sizeof(CNetEvent_Damage));
+	CNetEvent_DDRaceDamage *pDDRaceEvent;
+	CNetEvent_Damage *pEvent = (CNetEvent_Damage *)pEvents->Create(
+		NETEVENTTYPE_DAMAGE, sizeof(CNetEvent_Damage),
+		NETEVENTTYPE_DDRACEDAMAGE, sizeof(CNetEvent_DDRaceDamage), (void **)&pDDRaceEvent
+	);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -130,21 +141,27 @@ void CGameContext::CreateDamage(CEventHandler *pEvents, vec2 Pos, int Id, vec2 S
 		pEvent->m_HealthAmount = HealthAmount;
 		pEvent->m_ArmorAmount = ArmorAmount;
 		pEvent->m_Self = Self;
-		pEvent->m_World = -1;
-		pEvent->m_SoloClientID = -1;
+
+		*pDDRaceEvent = CNetEvent_DDRaceDamage::FromVanilla(pEvent);
+		pDDRaceEvent->m_SoloClientID = SoloClientID;
 	}
 }
 
-void CGameContext::CreateHammerHit(CEventHandler *pEvents, vec2 Pos)
+void CGameContext::CreateHammerHit(CEventHandler *pEvents, vec2 Pos, int SoloClientID)
 {
 	// create the event
-	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)pEvents->Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit));
+	CNetEvent_DDRaceHammerHit *pDDRaceEvent;
+	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)pEvents->Create(
+		NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit),
+		NETEVENTTYPE_DDRACEHAMMERHIT, sizeof(CNetEvent_DDRaceHammerHit), (void **)&pDDRaceEvent
+	);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
-		pEvent->m_World = -1;
-		pEvent->m_SoloClientID = -1;
+
+		*pDDRaceEvent = CNetEvent_DDRaceHammerHit::FromVanilla(pEvent);
+		pDDRaceEvent->m_SoloClientID = SoloClientID;
 	}
 }
 
@@ -152,13 +169,18 @@ void CGameContext::CreateHammerHit(CEventHandler *pEvents, vec2 Pos)
 void CGameContext::CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, vec2 Pos, int Owner, int Weapon, int MaxDamage, bool OnlySelf)
 {
 	// create the event
-	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)pEvents->Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion));
+	CNetEvent_DDRaceExplosion *pDDRaceEvent;
+	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)pEvents->Create(
+		NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion),
+		NETEVENTTYPE_DDRACEEXPLOSION, sizeof(CNetEvent_DDRaceExplosion), (void **)&pDDRaceEvent
+	);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
-		pEvent->m_World = -1;
-		pEvent->m_SoloClientID = OnlySelf ? Owner : -1;
+
+		*pDDRaceEvent = CNetEvent_DDRaceExplosion::FromVanilla(pEvent);
+		pDDRaceEvent->m_SoloClientID = OnlySelf ? Owner : -1;
 	}
 	// deal damage
 	CCharacter *apEnts[MAX_CLIENTS];
@@ -182,60 +204,79 @@ void CGameContext::CreateExplosion(CEventHandler *pEvents, CGameWorld *pWorld, v
 	}
 }
 
-void CGameContext::CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos)
+void CGameContext::CreatePlayerSpawn(CEventHandler *pEvents, vec2 Pos, int SoloClientID)
 {
 	// create the event
-	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)pEvents->Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn));
+	CNetEvent_DDRaceSpawn *ddrev;
+	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)pEvents->Create(
+		NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn),
+		NETEVENTTYPE_DDRACESPAWN, sizeof(CNetEvent_DDRaceSpawn), (void **)&ddrev
+	);
 	if(ev)
 	{
 		ev->m_X = (int)Pos.x;
 		ev->m_Y = (int)Pos.y;
-		ev->m_World = -1;
-		ev->m_SoloClientID = -1;
+
+		*ddrev = CNetEvent_DDRaceSpawn::FromVanilla(ev);
+		ddrev->m_SoloClientID = SoloClientID;
 	}
 }
 
-void CGameContext::CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos)
+void CGameContext::CreatePlayerTeleport(CEventHandler *pEvents, vec2 Pos, int SoloClientID)
 {
 	// create the event
-	CNetEvent_Teleport *ev = (CNetEvent_Teleport *)pEvents->Create(NETEVENTTYPE_TELEPORT, sizeof(CNetEvent_Teleport));
+	CNetEvent_DDRaceTeleport *ev;
+	pEvents->Create(
+		0, 0,
+		NETEVENTTYPE_DDRACETELEPORT, sizeof(CNetEvent_DDRaceTeleport), (void **)&ev
+	);
 	if(ev)
 	{
 		ev->m_X = (int)Pos.x;
 		ev->m_Y = (int)Pos.y;
-		ev->m_World = -1;
-		ev->m_SoloClientID = -1;
+		ev->m_SoloClientID = SoloClientID;
 	}
 }
 
-void CGameContext::CreateDeath(CEventHandler *pEvents, vec2 Pos, int ClientID)
+void CGameContext::CreateDeath(CEventHandler *pEvents, vec2 Pos, int ClientID, int SoloClientID)
 {
 	// create the event
-	CNetEvent_Death *pEvent = (CNetEvent_Death *)pEvents->Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death));
+	CNetEvent_DDRaceDeath *pDDraceEvent;
+	CNetEvent_Death *pEvent = (CNetEvent_Death *)pEvents->Create(
+		NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death),
+		NETEVENTTYPE_DDRACEDEATH, sizeof(CNetEvent_DDRaceDeath), (void **)&pDDraceEvent
+	);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_ClientID = ClientID;
-		pEvent->m_World = -1;
-		pEvent->m_SoloClientID = -1;
+
+		*pDDraceEvent = CNetEvent_DDRaceDeath::FromVanilla(pEvent);
+		pDDraceEvent->m_SoloClientID = SoloClientID;
 	}
 }
 
-void CGameContext::CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int64 Mask, int SoloClientID)
+void CGameContext::CreateSound(CEventHandler *pEvents, vec2 Pos, int Sound, int SoloClientID, int64 Mask)
 {
 	if (Sound < 0)
 		return;
 
 	// create a sound
-	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)pEvents->Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask);
+	CNetEvent_DDRaceSoundWorld *pDDRaceEvent;
+	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)pEvents->Create(
+		NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld),
+		NETEVENTTYPE_DDRACESOUNDWORLD, sizeof(CNetEvent_DDRaceSoundWorld), (void **)&pDDRaceEvent,
+		Mask
+	);
 	if(pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_SoundID = Sound;
-		pEvent->m_World = -1;
-		pEvent->m_SoloClientID = SoloClientID;
+
+		*pDDRaceEvent = CNetEvent_DDRaceSoundWorld::FromVanilla(pEvent);
+		pDDRaceEvent->m_SoloClientID = SoloClientID;
 	}
 }
 
@@ -460,10 +501,12 @@ void CGameContext::CheckPureTuning()
 		return;
 
 	CTuningParams p;
-	if(mem_comp(&p, &m_Tuning, sizeof(p)) != 0)
+	CDDRaceTuningParams dp;
+	if(mem_comp(&p, &m_Tuning, sizeof(p)) != 0 || mem_comp(&dp, &m_DDRaceTuning, sizeof(dp)) != 0)
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "resetting tuning due to pure server");
 		m_Tuning = p;
+		m_DDRaceTuning = dp;
 	}
 }
 
@@ -476,6 +519,15 @@ void CGameContext::SendTuningParams(int ClientID)
 	for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)
 		Msg.AddInt(pParams[i]);
 	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+
+	if (m_apPlayers[ClientID]->m_HasDDRaceClient)
+	{
+		CMsgPacker Msg(NETMSGTYPE_SV_DDRACETUNEPARAMS);
+		int *pParams = (int *)&m_DDRaceTuning;
+		for(unsigned i = 0; i < sizeof(m_DDRaceTuning)/sizeof(int); i++)
+			Msg.AddInt(pParams[i]);
+		Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	}
 }
 
 void CGameContext::SwapTeams()
@@ -773,7 +825,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		return;
 	}
 
-	if(Server()->ClientIngame(ClientID))
+	if(MsgID == NETMSGTYPE_CL_DDRACEGOTDDRACECLIENT)
+	{
+		pPlayer->m_HasDDRaceClient = true;
+		dbg_msg("gamecontext", "Client %d has a DDRace client!", ClientID);
+	}
+	else if(Server()->ClientIngame(ClientID))
 	{
 		if(MsgID == NETMSGTYPE_CL_SAY)
 		{
@@ -1017,7 +1074,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_LastKill = Server()->Tick();
 			pPlayer->KillCharacter(WEAPON_SELF);
 		}
-		else if (MsgID == NETMSGTYPE_CL_NEWRACETEAM && !m_pController->IsGamePaused())
+		else if (MsgID == NETMSGTYPE_CL_DDRACENEWRACETEAM && !m_pController->IsGamePaused())
 		{
 			int WorldID = GetEmptyWorldID();
 			if(WorldID != -1)
@@ -1030,9 +1087,9 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				pPlayer->ChangeWorld(WorldID);
 			}
 		}
-		else if (MsgID == NETMSGTYPE_CL_JOINRACETEAM  && !m_pController->IsGamePaused())
+		else if (MsgID == NETMSGTYPE_CL_DDRACEJOINRACETEAM  && !m_pController->IsGamePaused())
 		{
-			CNetMsg_Cl_JoinRaceTeam *pMsg = (CNetMsg_Cl_JoinRaceTeam *)pRawMsg;
+			CNetMsg_Cl_DDRaceJoinRaceTeam *pMsg = (CNetMsg_Cl_DDRaceJoinRaceTeam *)pRawMsg;
 			if(m_apPlayers[pMsg->m_ClientID] && m_apPlayers[pMsg->m_ClientID]->WorldID() != -1
 					&& m_aWorlds[m_apPlayers[pMsg->m_ClientID]->WorldID()].RaceState() == CGameWorld::RACESTATE_STARTING)
 			{
@@ -1042,7 +1099,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				pPlayer->ChangeWorld(m_apPlayers[pMsg->m_ClientID]->WorldID());
 			}
 		}
-		else if (MsgID == NETMSGTYPE_CL_LEAVERACETEAM && !m_pController->IsGamePaused())
+		else if (MsgID == NETMSGTYPE_CL_DDRACELEAVERACETEAM && !m_pController->IsGamePaused())
 		{
 			if((pPlayer->WorldID() != -1 && m_aWorlds[pPlayer->WorldID()].RaceState() != CGameWorld::RACESTATE_STARTING)
 					|| (pPlayer->GetCharacter() && pPlayer->GetCharacter()->RaceState() != CGameWorld::RACESTATE_STARTING))
@@ -1620,13 +1677,26 @@ void CGameContext::OnSnap(int ClientID)
 {
 	// add tuning to demo
 	CTuningParams StandardTuning;
-	if(ClientID == -1 && Server()->DemoRecorder_IsRecording() && mem_comp(&StandardTuning, &m_Tuning, sizeof(CTuningParams)) != 0)
+	CDDRaceTuningParams StandardDDRaceTuning;
+	if(ClientID == -1 && Server()->DemoRecorder_IsRecording())
 	{
-		CNetObj_De_TuneParams *pTuneParams = static_cast<CNetObj_De_TuneParams *>(Server()->SnapNewItem(NETOBJTYPE_DE_TUNEPARAMS, 0, sizeof(CNetObj_De_TuneParams)));
-		if(!pTuneParams)
-			return;
+		if(mem_comp(&StandardTuning, &m_Tuning, sizeof(CTuningParams)) != 0)
+		{
+			CNetObj_De_TuneParams *pTuneParams = static_cast<CNetObj_De_TuneParams *>(Server()->SnapNewItem(NETOBJTYPE_DE_TUNEPARAMS, 0, sizeof(CNetObj_De_TuneParams)));
+			if(!pTuneParams)
+				return;
 
-		mem_copy(pTuneParams->m_aTuneParams, &m_Tuning, sizeof(pTuneParams->m_aTuneParams));
+			mem_copy(pTuneParams->m_aTuneParams, &m_Tuning, sizeof(pTuneParams->m_aTuneParams));
+		}
+
+		if(mem_comp(&StandardDDRaceTuning, &m_DDRaceTuning, sizeof(CDDRaceTuningParams)) != 0)
+		{
+			CNetObj_De_DDRaceTuneParams *pTuneParams = static_cast<CNetObj_De_DDRaceTuneParams *>(Server()->SnapNewItem(NETOBJTYPE_DE_DDRACETUNEPARAMS, 0, sizeof(CNetObj_De_DDRaceTuneParams)));
+			if(!pTuneParams)
+				return;
+
+			mem_copy(pTuneParams->m_aTuneParams, &m_DDRaceTuning, sizeof(pTuneParams->m_aTuneParams));
+		}
 	}
 
 	for(int i = 0; i < NUM_WORLDS; i++)

@@ -64,8 +64,8 @@ public:
 	bool m_Paused;
 	CWorldCore m_Core;
 	bool m_aNextSwitchStates[255];
-	bool m_aSwitchStates[255];
-	int m_aSwitchTicks[255];
+	bool m_aDDRaceSwitchStates[255];
+	int m_aDDRaceSwitchTicks[255];
 	bool m_SwitchStateChanged;
 	bool m_Default;
 
@@ -79,8 +79,8 @@ public:
 	CGameWorld();
 	~CGameWorld();
 
-	void InitCollision(class CLayers *pLayers) { m_Collision.Init(pLayers, m_aSwitchStates); }
-	void InitCollision(class CCollision *pOther) { m_Collision.Init(pOther, m_aSwitchStates); }
+	void InitCollision(class CLayers *pLayers) { m_Collision.Init(pLayers, m_aDDRaceSwitchStates); }
+	void InitCollision(class CCollision *pOther) { m_Collision.Init(pOther, m_aDDRaceSwitchStates); }
 
 	void SetGameServer(CGameContext *pGameServer);
 

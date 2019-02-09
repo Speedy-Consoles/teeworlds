@@ -37,7 +37,7 @@ void CPickup::Tick()
 			m_SpawnTick = -1;
 
 			if(m_Type == PICKUP_GRENADE || m_Type == PICKUP_SHOTGUN || m_Type == PICKUP_LASER)
-				GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_SPAWN);
+				GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_SPAWN, -1);
 		}
 		else
 			return;
@@ -75,7 +75,7 @@ void CPickup::Tick()
 						if(pChr->IncreaseHealth(1))
 						{
 							Picked = true;
-							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_HEALTH);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_HEALTH, pChr->SoloClientID());
 						}
 						break;
 
@@ -83,7 +83,7 @@ void CPickup::Tick()
 						if(pChr->IncreaseArmor(1))
 						{
 							Picked = true;
-							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_ARMOR);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_ARMOR, pChr->SoloClientID());
 						}
 						break;
 
@@ -91,7 +91,7 @@ void CPickup::Tick()
 						if(pChr->GiveWeapon(WEAPON_GRENADE, GrenadeAmmo))
 						{
 							Picked = true;
-							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_GRENADE);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_GRENADE, pChr->SoloClientID());
 							if(pChr->GetPlayer())
 								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_GRENADE);
 						}
@@ -100,7 +100,7 @@ void CPickup::Tick()
 						if(pChr->GiveWeapon(WEAPON_SHOTGUN, ShotgunAmmo))
 						{
 							Picked = true;
-							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN, pChr->SoloClientID());
 							if(pChr->GetPlayer())
 								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_SHOTGUN);
 						}
@@ -109,7 +109,7 @@ void CPickup::Tick()
 						if(pChr->GiveWeapon(WEAPON_LASER, LaserAmmo))
 						{
 							Picked = true;
-							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN);
+							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_SHOTGUN, pChr->SoloClientID());
 							if(pChr->GetPlayer())
 								GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), WEAPON_LASER);
 						}
@@ -169,12 +169,28 @@ void CPickup::Snap(int SnappingClient, int WorldID)
 	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient) || !Active())
 		return;
 
-	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), sizeof(CNetObj_Pickup)));
-	if(!pP)
-		return;
+	CNetObj_Pickup *pVanillaP = nullptr;
+	CNetObj_DDRacePickup *pP;
+	CNetObj_DDRacePickup DummyP;
+	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
+	{
+		pP = static_cast<CNetObj_DDRacePickup *>(Server()->SnapNewItem(NETOBJTYPE_DDRACEPICKUP, GetID(), sizeof(CNetObj_DDRacePickup)));
+		if(!pP)
+			return;
+	}
+	else
+	{
+		pVanillaP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), sizeof(CNetObj_Pickup)));
+		if(!pVanillaP)
+			return;
+		pP = &DummyP;
+	}
 
 	pP->m_X = (int)m_Pos.x;
 	pP->m_Y = (int)m_Pos.y;
 	pP->m_Type = m_Type;
-	pP->m_World = WorldID;
+	pP->m_WorldID = WorldID;
+
+	if(pVanillaP)
+		*pVanillaP = pP->ToVanilla();
 }

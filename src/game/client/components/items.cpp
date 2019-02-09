@@ -16,17 +16,12 @@
 #include "items.h"
 
 
-void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
+void CItems::RenderProjectile(const CNetObj_DDRaceProjectile *pCurrent, int ItemID)
 {
-	float Opacity;
+	float Opacity = 1.0f;
 	bool Solo = false;
-	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
-	{
-		if(pCurrent->m_Type == WEAPON_SHOTGUN)
-			return; //don't render other world's shotgun bullets
-		else
-			Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	}
+	if(pCurrent->m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
 	else if(m_pClient->m_LocalClientID != pCurrent->m_SoloClientID
 			&& (m_pClient->m_PredictedChar.m_Solo || pCurrent->m_SoloClientID != -1)
 			&& pCurrent->m_Type != WEAPON_SHOTGUN)
@@ -34,8 +29,6 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 		Solo = true;
 		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
 	}
-	else
-		Opacity = 1.0f;
 
 	// get positions
 	float Curvature = 0;
@@ -81,7 +74,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	// add particle for this projectile
 	if(pCurrent->m_Type == WEAPON_GRENADE)
 	{
-		m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, pCurrent->m_World, Solo);
+		m_pClient->m_pEffects->SmokeTrail(Pos, Vel*-1, pCurrent->m_WorldID, Solo);
 		static float s_Time = 0.0f;
 		static float s_LastLocalTime = Client()->LocalTime();
 
@@ -102,7 +95,7 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	}
 	else
 	{
-		m_pClient->m_pEffects->BulletTrail(Pos, pCurrent->m_World, Solo);
+		m_pClient->m_pEffects->BulletTrail(Pos, pCurrent->m_WorldID, Solo);
 
 		if(length(Vel) > 0.00001f)
 			Graphics()->QuadsSetRotation(angle(Vel));
@@ -117,15 +110,11 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	Graphics()->QuadsEnd();
 }
 
-void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCurrent)
+void CItems::RenderPickup(const CNetObj_DDRacePickup *pPrev, const CNetObj_DDRacePickup *pCurrent)
 {
-	float Opacity = 1.0f;
-	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
-		return; //don't render other world's pickups
-
 	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
 	Graphics()->QuadsBegin();
-	Graphics()->SetColor(1.0f, 1.0f,1.0f, Opacity);
+	Graphics()->SetColor(1.0f, 1.0f,1.0f, 1.0f);
 	vec2 Pos = mix(vec2(pPrev->m_X, pPrev->m_Y), vec2(pCurrent->m_X, pCurrent->m_Y), Client()->IntraGameTick());
 	float Angle = 0.0f;
 	float Size = 64.0f;
@@ -180,13 +169,13 @@ void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCu
 	Graphics()->QuadsEnd();
 }
 
-void CItems::RenderFlag(const CNetObj_Flag *pPrev, const CNetObj_Flag *pCurrent, const CNetObj_GameDataFlag *pPrevGameDataFlag, const CNetObj_GameDataFlag *pCurGameDataFlag)
+void CItems::RenderFlag(const CNetObj_DDRaceFlag *pPrev, const CNetObj_DDRaceFlag *pCurrent, const CNetObj_GameDataFlag *pPrevGameDataFlag, const CNetObj_GameDataFlag *pCurGameDataFlag)
 {
 	float Angle = 0.0f;
 	float Size = 42.0f;
 
 	float Opacity;
-	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+	if(pCurrent->m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
 		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
 	else
 		Opacity = 1.0f;
@@ -226,14 +215,14 @@ void CItems::RenderFlag(const CNetObj_Flag *pPrev, const CNetObj_Flag *pCurrent,
 }
 
 
-void CItems::RenderLaser(const struct CNetObj_Laser *pCurrent)
+void CItems::RenderLaser(const struct CNetObj_DDRaceLaser *pCurrent)
 {
 	vec2 Pos = vec2(pCurrent->m_X, pCurrent->m_Y);
 	vec2 From = vec2(pCurrent->m_FromX, pCurrent->m_FromY);
 	vec2 Dir = normalize(Pos-From);
 
 	float Opacity;
-	if(pCurrent->m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+	if(pCurrent->m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
 		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
 	else if(m_pClient->m_LocalClientID != pCurrent->m_SoloClientID
 			&& (m_pClient->m_PredictedChar.m_Solo || pCurrent->m_SoloClientID != -1))
@@ -314,19 +303,53 @@ void CItems::OnRender()
 		IClient::CSnapItem Item;
 		const void *pData = Client()->SnapGetItem(IClient::SNAP_CURRENT, i, &Item);
 
-		if(Item.m_Type == NETOBJTYPE_PROJECTILE)
+		switch(Item.m_Type)
 		{
-			RenderProjectile((const CNetObj_Projectile *)pData, Item.m_ID);
-		}
-		else if(Item.m_Type == NETOBJTYPE_PICKUP)
-		{
-			const void *pPrev = Client()->SnapFindItem(IClient::SNAP_PREV, Item.m_Type, Item.m_ID);
-			if(pPrev)
-				RenderPickup((const CNetObj_Pickup *)pPrev, (const CNetObj_Pickup *)pData);
-		}
-		else if(Item.m_Type == NETOBJTYPE_LASER)
-		{
-			RenderLaser((const CNetObj_Laser *)pData);
+			// Vanilla net objects
+			case NETOBJTYPE_PROJECTILE:
+				{
+					const CNetObj_DDRaceProjectile Projectile = CNetObj_DDRaceProjectile::FromVanilla((const CNetObj_Projectile *)pData);
+					RenderProjectile(&Projectile, Item.m_ID);
+				}
+				break;
+			case NETOBJTYPE_PICKUP:
+				{
+					const void *pPrev = Client()->SnapFindItem(IClient::SNAP_PREV, Item.m_Type, Item.m_ID);
+					if(pPrev)
+					{
+						CNetObj_DDRacePickup PrevPickup = CNetObj_DDRacePickup::FromVanilla(static_cast<const CNetObj_Pickup *>(pPrev));
+						CNetObj_DDRacePickup CurrentPickup = CNetObj_DDRacePickup::FromVanilla(static_cast<const CNetObj_Pickup *>(pData));
+						RenderPickup(&PrevPickup, &CurrentPickup);
+					}
+				}
+				break;
+			case NETOBJTYPE_LASER:
+				{
+					const CNetObj_DDRaceLaser Laser = CNetObj_DDRaceLaser::FromVanilla(static_cast<const CNetObj_Laser *>(pData));
+					RenderLaser(&Laser);
+				}
+				break;
+			// DDRace net objects
+			case NETOBJTYPE_DDRACEPROJECTILE:
+				RenderProjectile((const CNetObj_DDRaceProjectile *)pData, Item.m_ID);
+				break;
+			case NETOBJTYPE_DDRACEPICKUP:
+				{
+					const void *pPrev = Client()->SnapFindItem(IClient::SNAP_PREV, Item.m_Type, Item.m_ID);
+					if(pPrev)
+					{
+						const CNetObj_DDRacePickup *pCurrent = (const CNetObj_DDRacePickup *)pData;
+						if(pCurrent->m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+							return; //don't render other world's pickups
+						RenderPickup((const CNetObj_DDRacePickup *)pPrev, pCurrent);
+					}
+				}
+				break;
+			case NETOBJTYPE_DDRACELASER:
+				RenderLaser(static_cast<const CNetObj_DDRaceLaser *>(pData));
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -336,15 +359,35 @@ void CItems::OnRender()
 		IClient::CSnapItem Item;
 		const void *pData = Client()->SnapGetItem(IClient::SNAP_CURRENT, i, &Item);
 
-		if(Item.m_Type == NETOBJTYPE_FLAG)
+		switch(Item.m_Type)
 		{
-			const void *pPrev = Client()->SnapFindItem(IClient::SNAP_PREV, Item.m_Type, Item.m_ID);
-			if (pPrev)
-			{
-				const void *pPrevGameDataFlag = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_GAMEDATAFLAG, m_pClient->m_Snap.m_GameDataFlagSnapID);
-				RenderFlag(static_cast<const CNetObj_Flag *>(pPrev), static_cast<const CNetObj_Flag *>(pData),
-							static_cast<const CNetObj_GameDataFlag *>(pPrevGameDataFlag), m_pClient->m_Snap.m_pGameDataFlag);
-			}
+			case NETOBJTYPE_FLAG:
+				{
+					const void *pPrev = Client()->SnapFindItem(IClient::SNAP_PREV, Item.m_Type, Item.m_ID);
+					if (pPrev)
+					{
+						CNetObj_DDRaceFlag PrevFlag = CNetObj_DDRaceFlag::FromVanilla(static_cast<const CNetObj_Flag *>(pPrev));
+						CNetObj_DDRaceFlag CurrentFlag = CNetObj_DDRaceFlag::FromVanilla(static_cast<const CNetObj_Flag *>(pData));
+						const void *pPrevGameDataFlag = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_GAMEDATAFLAG, m_pClient->m_Snap.m_GameDataFlagSnapID);
+						RenderFlag(&PrevFlag, &CurrentFlag, static_cast<const CNetObj_GameDataFlag *>(pPrevGameDataFlag), m_pClient->m_Snap.m_pGameDataFlag);
+					}
+				}
+				break;
+			case NETOBJTYPE_DDRACEFLAG:
+				{
+					const void *pPrev = Client()->SnapFindItem(IClient::SNAP_PREV, Item.m_Type, Item.m_ID);
+					if (pPrev)
+					{
+						const void *pPrevGameDataFlag = Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_GAMEDATAFLAG, m_pClient->m_Snap.m_GameDataFlagSnapID);
+						RenderFlag(
+							static_cast<const CNetObj_DDRaceFlag *>(pPrev),
+							static_cast<const CNetObj_DDRaceFlag *>(pData),
+							static_cast<const CNetObj_GameDataFlag *>(pPrevGameDataFlag),
+							m_pClient->m_Snap.m_pGameDataFlag
+						);
+					}
+				}
+				break;
 		}
 	}
 }

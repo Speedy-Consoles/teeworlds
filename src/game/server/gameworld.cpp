@@ -23,8 +23,8 @@ CGameWorld::CGameWorld()
 		m_apFirstEntityTypes[i] = 0;
 	for(int i = 0; i < 255; i++)
 	{
-		m_aSwitchStates[i] = false;
-		m_aSwitchTicks[i] = -1;
+		m_aDDRaceSwitchStates[i] = false;
+		m_aDDRaceSwitchTicks[i] = -1;
 	}
 	
 	m_RaceState = RACESTATE_STARTING;
@@ -119,9 +119,9 @@ void CGameWorld::SetSwitchState(bool State, int GroupID, int Duration)
 {
 	m_aNextSwitchStates[GroupID] = State;
 	if(Duration == -1)
-		m_aSwitchTicks[GroupID] = -1;
+		m_aDDRaceSwitchTicks[GroupID] = -1;
 	else
-		m_aSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
+		m_aDDRaceSwitchTicks[GroupID] = Duration * Server()->TickSpeed() + 1;
 }
 
 void CGameWorld::StartRace()
@@ -200,11 +200,14 @@ void CGameWorld::Snap(int SnappingClient, int WorldID)
 		}
 
 	// snap switch states
-	CNetObj_SwitchStates *pSwitchStates = static_cast<CNetObj_SwitchStates *>(Server()->SnapNewItem(NETOBJTYPE_SWITCHSTATES, WorldID, sizeof(CNetObj_SwitchStates)));
-	if(pSwitchStates)
+	if (GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
 	{
-		for(int i = 0; i < 255; i++)
-			pSwitchStates->m_aStates[i/8] |= m_aSwitchStates[i] << (i % 8);
+		CNetObj_DDRaceSwitchStates *pSwitchStates = static_cast<CNetObj_DDRaceSwitchStates *>(Server()->SnapNewItem(NETOBJTYPE_DDRACESWITCHSTATES, WorldID, sizeof(CNetObj_DDRaceSwitchStates)));
+		if(pSwitchStates)
+		{
+			for(int i = 0; i < 255; i++)
+				pSwitchStates->m_aStates[i/8] |= m_aDDRaceSwitchStates[i] << (i % 8);
+		}
 	}
 
 	m_Events.Snap(SnappingClient, WorldID);
@@ -239,8 +242,8 @@ void CGameWorld::Reset(bool Soft)
 
 	for(int i = 0; i < 255; i++)
 	{
-		m_aSwitchStates[i] = false;
-		m_aSwitchTicks[i] = -1;
+		m_aDDRaceSwitchStates[i] = false;
+		m_aDDRaceSwitchTicks[i] = -1;
 	}
 
 	if(!Soft)
@@ -295,16 +298,16 @@ void CGameWorld::Tick()
 		m_SwitchStateChanged = false;
 		for(int i = 0; i < 255; i++)
 		{
-			int Old = m_aSwitchStates[i];
-			m_aSwitchStates[i] = m_aNextSwitchStates[i];
-			if(m_aSwitchTicks[i] == 0)
+			int Old = m_aDDRaceSwitchStates[i];
+			m_aDDRaceSwitchStates[i] = m_aNextSwitchStates[i];
+			if(m_aDDRaceSwitchTicks[i] == 0)
 			{
-				m_aSwitchTicks[i] = -1;
-				m_aNextSwitchStates[i] = !m_aSwitchStates[i];
+				m_aDDRaceSwitchTicks[i] = -1;
+				m_aNextSwitchStates[i] = !m_aDDRaceSwitchStates[i];
 			}
-			else if(m_aSwitchTicks[i] > 0)
-				m_aSwitchTicks[i]--;
-			if(Old != m_aSwitchStates[i])
+			else if(m_aDDRaceSwitchTicks[i] > 0)
+				m_aDDRaceSwitchTicks[i]--;
+			if(Old != m_aDDRaceSwitchStates[i])
 				m_SwitchStateChanged = true;
 		}
 	}

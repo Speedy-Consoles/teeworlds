@@ -89,12 +89,28 @@ void CFlag::Snap(int SnappingClient, int WorldID)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Flag *pFlag = (CNetObj_Flag *)Server()->SnapNewItem(NETOBJTYPE_FLAG, 0, sizeof(CNetObj_Flag));
-	if(!pFlag)
-		return;
+	CNetObj_Flag *pVanillaFlag = nullptr;
+	CNetObj_DDRaceFlag *pFlag;
+	CNetObj_DDRaceFlag DummyFlag;
+	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
+	{
+		pFlag = static_cast<CNetObj_DDRaceFlag *>(Server()->SnapNewItem(NETOBJTYPE_DDRACEFLAG, GetID(), sizeof(CNetObj_DDRaceFlag)));
+		if(!pFlag)
+			return;
+	}
+	else
+	{
+		pVanillaFlag = static_cast<CNetObj_Flag *>(Server()->SnapNewItem(NETOBJTYPE_FLAG, GetID(), sizeof(CNetObj_Flag)));
+		if(!pVanillaFlag)
+			return;
+		pFlag = &DummyFlag;
+	}
 
 	pFlag->m_X = (int)m_Pos.x;
 	pFlag->m_Y = (int)m_Pos.y;
 	pFlag->m_Team = m_Team;
-	pFlag->m_World = WorldID;
+	pFlag->m_WorldID = WorldID;
+
+	if(pVanillaFlag)
+		*pVanillaFlag = pFlag->ToVanilla();
 }

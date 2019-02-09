@@ -110,9 +110,9 @@ if gen_network_header:
 		for l in create_flags_table(["%s_%s" % (e.name, v) for v in e.values]): print(l)
 		print("")
 
-	for l in create_enum_table(["NETOBJ_INVALID"]+[o.enum_name for o in network.Objects], "NUM_NETOBJTYPES"): print(l)
+	for l in create_enum_table(["NETOBJ_INVALID"]+[o.enum_name for o in network.Objects]+[o.ddrace_enum_name for o in network.Objects if o.ddrace], "NUM_NETOBJTYPES"): print(l)
 	print("")
-	for l in create_enum_table(["NETMSG_INVALID"]+[o.enum_name for o in network.Messages], "NUM_NETMSGTYPES"): print(l)
+	for l in create_enum_table(["NETMSG_INVALID"]+[o.enum_name for o in network.Messages]+[o.ddrace_enum_name for o in network.Messages if o.ddrace], "NUM_NETMSGTYPES"): print(l)
 	print("")
 
 	for item in network.Objects + network.Messages:
@@ -200,11 +200,13 @@ if gen_network_source:
 	lines += ["const char *CNetObjHandler::ms_apObjNames[] = {"]
 	lines += ['\t"invalid",']
 	lines += ['\t"%s",' % o.name for o in network.Objects]
+	lines += ['\t"%s",' % o.ddrace_enum_name for o in network.Objects if o.ddrace]
 	lines += ['\t""', "};", ""]
 
 	lines += ["int CNetObjHandler::ms_aObjSizes[] = {"]
 	lines += ['\t0,']
 	lines += ['\tsizeof(%s),' % o.struct_name for o in network.Objects]
+	lines += ['\tsizeof(%s),' % o.ddrace_struct_name for o in network.Objects if o.ddrace]
 	lines += ['\t0', "};", ""]
 
 
@@ -255,6 +257,7 @@ if gen_network_source:
 		lines += ["static VALIDATEFUNC validate_funcs[] = {"]
 		lines += ['\tvalidate_invalid,']
 		lines += ['\tvalidate_%s,' % o.name for o in network.Objects]
+		lines += ['\tvalidate_%s,' % o.ddrace_name for o in network.Objects if o.ddrace]
 		lines += ["\t0x0", "};", ""]
 
 		lines += ["int netobj_validate(int type, void *data, int size)"]

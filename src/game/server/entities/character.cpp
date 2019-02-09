@@ -205,7 +205,7 @@ void CCharacter::HandleNinja()
 					continue;
 
 				// Hit a player, give him damage and stuffs...
-				GameServer()->CreateSound(Events(), aEnts[i]->m_Pos, SOUND_NINJA_HIT);
+				GameServer()->CreateSound(Events(), aEnts[i]->m_Pos, SOUND_NINJA_HIT, SoloClientID());
 				// set his velocity to fast upward (for now)
 				if(m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
@@ -284,7 +284,6 @@ void CCharacter::FireWeapon()
 	if(m_ActiveWeapon == WEAPON_GRENADE || m_ActiveWeapon == WEAPON_SHOTGUN || m_ActiveWeapon == WEAPON_LASER)
 		FullAuto = true;
 
-
 	// check if we gonna fire
 	bool WillFire = false;
 	if(m_Core.m_FreezeTick == 0)
@@ -307,7 +306,7 @@ void CCharacter::FireWeapon()
 		m_UnfreezeFire = true;
 		if(m_LastFreezeCrySound+Server()->TickSpeed() <= Server()->Tick())
 		{
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG, SoloClientID());
 			m_LastFreezeCrySound = Server()->Tick();
 		}
 			
@@ -325,7 +324,7 @@ void CCharacter::FireWeapon()
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
 		if(m_LastNoAmmoSound+Server()->TickSpeed() <= Server()->Tick())
 		{
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_NOAMMO);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_NOAMMO, SoloClientID());
 			m_LastNoAmmoSound = Server()->Tick();
 		}
 		return;
@@ -358,9 +357,9 @@ void CCharacter::FireWeapon()
 
 					// set his velocity to fast upward (for now)
 					if(length(pTarget->m_Pos-ProjStartPos) > 0.0f)
-						GameServer()->CreateHammerHit(Events(), pTarget->m_Pos-normalize(pTarget->m_Pos-ProjStartPos)*GetProximityRadius()*0.5f);
+						GameServer()->CreateHammerHit(Events(), pTarget->m_Pos-normalize(pTarget->m_Pos-ProjStartPos)*GetProximityRadius()*0.5f, SoloClientID());
 					else
-						GameServer()->CreateHammerHit(Events(), ProjStartPos);
+						GameServer()->CreateHammerHit(Events(), ProjStartPos, SoloClientID());
 
 					vec2 Dir;
 					if (length(pTarget->m_Pos - m_Pos) > 0.0f)
@@ -482,7 +481,7 @@ void CCharacter::GiveNinja()
 
 	if(m_Ninja.m_ActivationTick < Server()->Tick()-1 && m_LastNinjaSound < Server()->Tick() - Server()->TickSpeed() * 0.7f)
 	{
-		GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_NINJA);
+		GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_NINJA, SoloClientID());
 		m_LastNinjaSound = Server()->Tick();
 	}
 	m_Ninja.m_ActivationTick = Server()->Tick();
@@ -492,6 +491,11 @@ void CCharacter::SetEmote(int Emote, int Tick)
 {
 	m_EmoteType = Emote;
 	m_EmoteStop = Tick;
+}
+
+int CCharacter::SoloClientID()
+{
+	return m_Core.m_Solo ? GetPlayer()->GetCID() : -1;
 }
 
 void CCharacter::OnPredictedInput(CNetObj_PlayerInput *pNewInput)
@@ -620,8 +624,8 @@ void CCharacter::TickDefered()
 
 	// update the m_SendCore if needed
 	{
-		CNetObj_Character Predicted;
-		CNetObj_Character Current;
+		CNetObj_DDRaceCharacter Predicted;
+		CNetObj_DDRaceCharacter Current;
 		mem_zero(&Predicted, sizeof(Predicted));
 		mem_zero(&Current, sizeof(Current));
 		m_ReckoningCore.Write(&Predicted);
@@ -629,7 +633,7 @@ void CCharacter::TickDefered()
 
 		// only allow dead reackoning for a top of 3 seconds
 		// TODO DDRace is m_SwitchStateChanged really necessary
-		if(m_ReckoningTick+Server()->TickSpeed()*3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_Character)) != 0 || GameWorld()->m_SwitchStateChanged)
+		if(m_ReckoningTick+Server()->TickSpeed()*3 < Server()->Tick() || mem_comp(&Predicted, &Current, sizeof(CNetObj_DDRaceCharacter)) != 0 || GameWorld()->m_SwitchStateChanged)
 		{
 			m_ReckoningTick = Server()->Tick();
 			m_SendCore = m_Core;
@@ -645,8 +649,8 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 
 	if(Triggers.m_TeleFlags&CCollision::TRIGGERFLAG_TELEPORT)
 	{
-		GameServer()->CreatePlayerTeleport(Events(), Triggers.m_TeleInPos);
-		GameServer()->CreatePlayerTeleport(Events(), Triggers.m_TeleOutPos);
+		GameServer()->CreatePlayerTeleport(Events(), Triggers.m_TeleInPos, SoloClientID());
+		GameServer()->CreatePlayerTeleport(Events(), Triggers.m_TeleOutPos, SoloClientID());
 	}
 	if(Triggers.m_TeleFlags&CCollision::TRIGGERFLAG_STOP_NINJA)
 		m_Ninja.m_CurrentMoveTime = -1;
@@ -778,14 +782,14 @@ void CCharacter::Die(int Killer, int Weapon)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
 	// a nice sound
-	GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_DIE);
+	GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_DIE, SoloClientID());
 
 	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
 
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
-	GameServer()->CreateDeath(Events(), m_Pos, m_pPlayer->GetCID());
+	GameServer()->CreateDeath(Events(), m_Pos, m_pPlayer->GetCID(), SoloClientID());
 
 	GameWorld()->OnPlayerDeath();
 }
@@ -832,7 +836,7 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 
 	// create healthmod indicator
 	if (!GameServer()->IsDDRace())
-		GameServer()->CreateDamage(Events(), m_Pos, m_pPlayer->GetCID(), Source, OldHealth-m_Health, OldArmor-m_Armor, From == m_pPlayer->GetCID());
+		GameServer()->CreateDamage(Events(), m_Pos, m_pPlayer->GetCID(), Source, OldHealth-m_Health, OldArmor-m_Armor, From == m_pPlayer->GetCID(), SoloClientID());
 
 	// do damage Hit sound
 	if(From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
@@ -845,7 +849,7 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 				Mask |= CmaskOne(i);
 		}
 		if(Dmg > 0 && !GameServer()->IsDDRace())
-			GameServer()->CreateSound(Events(), GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask);
+			GameServer()->CreateSound(Events(), GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, SoloClientID(), Mask);
 	}
 
 	// check for death
@@ -868,9 +872,9 @@ bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weap
 	}
 
 	if (Dmg > 2 && !GameServer()->IsDDRace())
-		GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG);
+		GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_LONG, SoloClientID());
 	else if (Dmg > 0 && !GameServer()->IsDDRace())
-		GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_SHORT);
+		GameServer()->CreateSound(Events(), m_Pos, SOUND_PLAYER_PAIN_SHORT, SoloClientID());
 
 	m_EmoteType = EMOTE_PAIN;
 	m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;
@@ -905,9 +909,22 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Character *pCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character)));
-	if(!pCharacter)
-		return;
+	CNetObj_Character *pVanillaCharacter = nullptr;
+	CNetObj_DDRaceCharacter TmpCharacter;
+	CNetObj_DDRaceCharacter *pCharacter;
+	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
+	{
+		pCharacter = static_cast<CNetObj_DDRaceCharacter *>(Server()->SnapNewItem(NETOBJTYPE_DDRACECHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_DDRaceCharacter)));
+		if (!pCharacter)
+			return;
+	}
+	else
+	{
+		pVanillaCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character)));
+		if (!pVanillaCharacter)
+			return;
+		pCharacter = &TmpCharacter;
+	}
 
 	// write down the m_Core
 	if(!m_ReckoningTick || GameWorld()->m_Paused)
@@ -942,7 +959,7 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 
 	pCharacter->m_Direction = m_Input.m_Direction;
 
-	pCharacter->m_World = WorldID;
+	pCharacter->m_WorldID = WorldID;
 
 	if(m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
 		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->GetSpectatorID()))
@@ -960,6 +977,9 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 		if(250 - ((Server()->Tick() - m_LastAction)%(250)) < 5)
 			pCharacter->m_Emote = EMOTE_BLINK;
 	}
+
+	if (pVanillaCharacter)
+		*pVanillaCharacter = pCharacter->ToVanilla();
 }
 
 void CCharacter::PostSnap()

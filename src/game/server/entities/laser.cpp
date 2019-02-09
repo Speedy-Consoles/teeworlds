@@ -117,21 +117,37 @@ void CLaser::TickPaused()
 
 void CLaser::Snap(int SnappingClient, int WorldID)
 {
-	if (!WorldVisible(SnappingClient, WorldID))
+	if(!WorldVisible(SnappingClient, WorldID))
 		return;
 
 	if(NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From))
 		return;
 
-	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
-	if(!pObj)
-		return;
+	CNetObj_Laser *pVanillaObj = nullptr;
+	CNetObj_DDRaceLaser *pObj;
+	CNetObj_DDRaceLaser DummyObj;
+	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
+	{
+		pObj = static_cast<CNetObj_DDRaceLaser *>(Server()->SnapNewItem(NETOBJTYPE_DDRACELASER, GetID(), sizeof(CNetObj_DDRaceLaser)));
+		if(!pObj)
+			return;
+	}
+	else
+	{
+		pVanillaObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+		if(!pVanillaObj)
+			return;
+		pObj = &DummyObj;
+	}
 
 	pObj->m_X = (int)m_Pos.x;
 	pObj->m_Y = (int)m_Pos.y;
 	pObj->m_FromX = (int)m_From.x;
 	pObj->m_FromY = (int)m_From.y;
 	pObj->m_StartTick = m_EvalTick;
-	pObj->m_World = WorldID;
+	pObj->m_WorldID = WorldID;
 	pObj->m_SoloClientID = m_OnlySelf ? m_Owner : -1;
+
+	if(pVanillaObj)
+		*pVanillaObj = pObj->ToVanilla();
 }

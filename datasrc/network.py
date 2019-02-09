@@ -9,8 +9,8 @@ ChatModes = Enum("CHAT", ["NONE", "ALL", "TEAM", "WHISPER"])
 PlayerFlags = Flags("PLAYERFLAG", ["ADMIN", "CHATTING", "SCOREBOARD", "READY", "DEAD", "WATCHING", "BOT"])
 GameFlags = Flags("GAMEFLAG", ["TEAMS", "FLAGS", "SURVIVAL"])
 GameStateFlags = Flags("GAMESTATEFLAG", ["WARMUP", "SUDDENDEATH", "ROUNDOVER", "GAMEOVER", "PAUSED", "STARTCOUNTDOWN"])
-CoreEventFlags = Flags("COREEVENTFLAG", ["GROUND_JUMP", "AIR_JUMP", "HOOK_ATTACH_PLAYER", "HOOK_ATTACH_GROUND", "HOOK_HIT_NOHOOK", "FREEZE", "SPEEDUP"])
-CoreFlags = Flags("COREFLAG", ["SOLO"])
+CoreEventFlags = Flags("COREEVENTFLAG", ["GROUND_JUMP", "AIR_JUMP", "HOOK_ATTACH_PLAYER", "HOOK_ATTACH_GROUND", "HOOK_HIT_NOHOOK", "DDRACE_FREEZE", "DDRACE_SPEEDUP"])
+CoreFlags = Flags("COREFLAG", ["DDRACE_SOLO"])
 
 GameMsgIDs = Enum("GAMEMSG", ["TEAM_SWAP", "SPEC_INVALIDID", "TEAM_SHUFFLE", "TEAM_BALANCE", "CTF_DROP", "CTF_RETURN",
 							
@@ -87,10 +87,6 @@ Objects = [
 		NetIntAny("m_PrevWeapon"),
 	]),
 
-	NetObject("SwitchStates", [
-		NetArray(NetIntAny("m_aStates"), 8),
-	]),
-
 	NetObject("Projectile", [
 		NetIntAny("m_X"),
 		NetIntAny("m_Y"),
@@ -99,9 +95,9 @@ Objects = [
 
 		NetIntRange("m_Type", 0, 'NUM_WEAPONS-1'),
 		NetTick("m_StartTick"),
-
-		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1'),
+	], [
+		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
+		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1', -1),
 	]),
 
 	NetObject("Laser", [
@@ -111,9 +107,9 @@ Objects = [
 		NetIntAny("m_FromY"),
 
 		NetTick("m_StartTick"),
-
-		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1'),
+	], [
+		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
+		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1', -1),
 	]),
 
 	NetObject("Pickup", [
@@ -121,8 +117,8 @@ Objects = [
 		NetIntAny("m_Y"),
 
 		NetEnum("m_Type", Pickups),
-
-		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
+	], [
+		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
 	]),
 
 	NetObject("Flag", [
@@ -130,8 +126,8 @@ Objects = [
 		NetIntAny("m_Y"),
 
 		NetIntRange("m_Team", 'TEAM_RED', 'TEAM_BLUE'),
-
-		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
+	], [
+		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
 	]),
 
 	NetObject("GameData", [
@@ -166,14 +162,14 @@ Objects = [
 		NetIntRange("m_HookedPlayer", 0, 'MAX_CLIENTS-1'),
 		NetIntRange("m_HookState", -1, 5),
 		NetTick("m_HookTick"),
-		NetTick("m_FreezeTick"),
-		
-		NetFlag("m_Flags", CoreFlags),
 
 		NetIntAny("m_HookX"),
 		NetIntAny("m_HookY"),
 		NetIntAny("m_HookDx"),
 		NetIntAny("m_HookDy"),
+	], [
+		NetTick("m_FreezeTick", 0),
+		NetFlag("m_Flags", CoreFlags, 0),
 	]),
 
 	NetObject("Character:CharacterCore", [
@@ -184,9 +180,9 @@ Objects = [
 		NetEnum("m_Emote", Emotes),
 		NetTick("m_AttackTick"),
 		NetFlag("m_TriggeredEvents", CoreEventFlags),
-
-		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-	]),
+	], [
+		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
+	], True),
 
 	NetObject("PlayerInfo", [
 		NetFlag("m_PlayerFlags", PlayerFlags),
@@ -237,30 +233,23 @@ Objects = [
 	NetEvent("Common", [
 		NetIntAny("m_X"),
 		NetIntAny("m_Y"),
-		NetIntRange("m_World", 0, 'NUM_WORLDS-1'),
-		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1'),
+	], [
+		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
+		NetIntRange("m_SoloClientID", -1, 'MAX_CLIENTS-1', -1),
 	]),
 
 
-	NetEvent("Explosion:Common", [
-	]),
-	
-	NetEvent("Spawn:Common", [
-	]),
-	
-	NetEvent("Teleport:Common", [
-	]),
-	
-	NetEvent("HammerHit:Common", [
-	]),
+	NetEvent("Explosion:Common", [], [], True),
+	NetEvent("Spawn:Common", [], [], True),
+	NetEvent("HammerHit:Common", [], [], True),
 
 	NetEvent("Death:Common", [
 		NetIntRange("m_ClientID", 0, 'MAX_CLIENTS-1'),
-	]),
+	], [], True),
 
 	NetEvent("SoundWorld:Common", [
 		NetIntRange("m_SoundID", 0, 'NUM_SOUNDS-1'),
-	]),
+	], [], True),
 
 	NetEvent("Damage:Common", [ # Unused yet
 		NetIntRange("m_ClientID", 0, 'MAX_CLIENTS-1'),
@@ -268,8 +257,23 @@ Objects = [
 		NetIntRange("m_HealthAmount", 0, 9),
 		NetIntRange("m_ArmorAmount", 0, 9),
 		NetBool("m_Self"),
+	], [], True),
+]
+
+DDRaceObjects = [
+	NetObject("DDRaceSwitchStates", [
+		NetArray(NetIntAny("m_aStates"), 8),
+	]),
+
+	NetEvent("DDRaceTeleport:DDRaceCommon", []),
+
+	NetObject("De_DDRaceTuneParams", [
+		# todo: should be done differently
+		NetArray(NetIntAny("m_aTuneParams"), 32),
 	]),
 ]
+
+Objects += DDRaceObjects
 
 Messages = [
 
@@ -425,14 +429,6 @@ Messages = [
 
 	NetMessage("Cl_ReadyChange", []),
 
-	NetMessage("Cl_NewRaceTeam", []),
-	
-	NetMessage("Cl_JoinRaceTeam", [
-		NetIntRange("m_ClientID", 0, 'MAX_CLIENTS'),
-	]),
-
-	NetMessage("Cl_LeaveRaceTeam", []),
-
 	NetMessage("Cl_Emoticon", [
 		NetEnum("m_Emoticon", Emoticons),
 	]),
@@ -448,3 +444,20 @@ Messages = [
 		NetBool("m_Force"),
 	]),
 ]
+
+DDRaceMessages = [
+
+	NetMessage("Cl_DDRaceGotDDRaceClient", []),
+
+	NetMessage("Cl_DDRaceNewRaceTeam", []),
+
+	NetMessage("Cl_DDRaceJoinRaceTeam", [
+		NetIntRange("m_ClientID", 0, 'MAX_CLIENTS'),
+	]),
+
+	NetMessage("Cl_DDRaceLeaveRaceTeam", []),
+
+	NetMessage("Sv_DDRaceTuneParams", []),
+]
+
+Messages += DDRaceMessages

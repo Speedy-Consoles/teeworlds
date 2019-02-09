@@ -38,24 +38,24 @@ inline float AngularApproach(float Src, float Dst, float Amount)
 }
 
 void CPlayers::RenderHook(
-	const CNetObj_Character *pPrevChar,
-	const CNetObj_Character *pPlayerChar,
+	const CNetObj_DDRaceCharacter *pPrevChar,
+	const CNetObj_DDRaceCharacter *pPlayerChar,
 	const CNetObj_PlayerInfo *pPrevInfo,
 	const CNetObj_PlayerInfo *pPlayerInfo,
 	int ClientID
 	)
 {
-	CNetObj_Character Prev;
-	CNetObj_Character Player;
+	CNetObj_DDRaceCharacter Prev;
+	CNetObj_DDRaceCharacter Player;
 	Prev = *pPrevChar;
 	Player = *pPlayerChar;
 
 	CTeeRenderInfo RenderInfo = m_aRenderInfo[ClientID];
 
 	float Opacity;
-	if(Player.m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+	if(Player.m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
 		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_SOLO))
+	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_DDRACE_SOLO))
 		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
 	else
 		Opacity = 1.0f;
@@ -148,15 +148,15 @@ void CPlayers::RenderHook(
 }
 
 void CPlayers::RenderPlayer(
-	const CNetObj_Character *pPrevChar,
-	const CNetObj_Character *pPlayerChar,
+	const CNetObj_DDRaceCharacter *pPrevChar,
+	const CNetObj_DDRaceCharacter *pPlayerChar,
 	const CNetObj_PlayerInfo *pPrevInfo,
 	const CNetObj_PlayerInfo *pPlayerInfo,
 	int ClientID
 	)
 {
-	CNetObj_Character Prev;
-	CNetObj_Character Player;
+	CNetObj_DDRaceCharacter Prev;
+	CNetObj_DDRaceCharacter Player;
 	Prev = *pPrevChar;
 	Player = *pPlayerChar;
 
@@ -165,9 +165,9 @@ void CPlayers::RenderPlayer(
 
 	float Opacity;
 	bool Solo = false;
-	if(Player.m_World != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
+	if(Player.m_WorldID != m_pClient->m_LocalWorldID && m_pClient->m_LocalWorldID != -1)
 		Opacity = g_Config.m_GfxOtherWorldOpacity / 10.0f;
-	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_SOLO))
+	else if(m_pClient->m_LocalClientID != ClientID && (m_pClient->m_PredictedChar.m_Solo || Player.m_Flags&COREFLAG_DDRACE_SOLO))
 	{
 		Solo = true;
 		Opacity = g_Config.m_GfxSoloOpacity / 10.0f;
@@ -241,7 +241,7 @@ void CPlayers::RenderPlayer(
 	RenderInfo.m_GotAirJump = Player.m_Jumped&2?0:1;
 
 	bool Stationary = Player.m_VelX <= 1 && Player.m_VelX >= -1;
-	bool InAir = !(GetDDRTeamCollision(Player.m_World)->GetCollisionMove(Player.m_X, Player.m_Y+16, Player.m_X, Player.m_Y+14)&CCollision::COLFLAG_SOLID);
+	bool InAir = !(GetDDRTeamCollision(Player.m_WorldID)->GetCollisionMove(Player.m_X, Player.m_Y+16, Player.m_X, Player.m_Y+14)&CCollision::COLFLAG_SOLID);
 	bool WantOtherDir = (Player.m_Direction == -1 && Vel.x > 0) || (Player.m_Direction == 1 && Vel.x < 0);
 
 	// evaluate animation
@@ -281,7 +281,7 @@ void CPlayers::RenderPlayer(
 	if(!InAir && WantOtherDir && length(Vel*50) > 500.0f)
 	{
 		static int64 SkidSoundTime = 0;
-		if(time_get()-SkidSoundTime > time_freq()/10 && m_pClient->m_LocalWorldID == Player.m_World && !Solo)
+		if(time_get()-SkidSoundTime > time_freq()/10 && m_pClient->m_LocalWorldID == Player.m_WorldID && !Solo)
 		{
 			m_pClient->m_pSounds->PlayAt(CSounds::CHN_WORLD, SOUND_PLAYER_SKID, 0.25f, Position);
 			SkidSoundTime = time_get();
@@ -290,7 +290,7 @@ void CPlayers::RenderPlayer(
 		m_pClient->m_pEffects->SkidTrail(
 			Position+vec2(-Player.m_Direction*6,12),
 			vec2(-Player.m_Direction*100*length(Vel),-50),
-			Player.m_World,
+			Player.m_WorldID,
 			Solo
 		);
 	}
@@ -473,7 +473,7 @@ void CPlayers::RenderPlayer(
 		if(Player.m_FreezeTick == 0)
 			FadeTarget = 0.0f;
 		else if(Player.m_FreezeTick > 0)
-			FadeTarget = ((float) Player.m_FreezeTick) / (m_pClient->m_Tuning.m_FreezeTime * SERVER_TICK_SPEED);
+			FadeTarget = ((float) Player.m_FreezeTick) / (m_pClient->m_DDRaceTuning.m_FreezeTime * SERVER_TICK_SPEED);
 		else
 			FadeTarget = 1.0f;
 
@@ -621,7 +621,7 @@ void CPlayers::OnRender()
 			{
 				//
 				bool Local = m_pClient->m_LocalClientID == i;
-				bool Opaque = Local || (m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_World == m_pClient->m_LocalWorldID && !(m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_Flags&COREFLAG_SOLO));
+				bool Opaque = Local || (m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_WorldID == m_pClient->m_LocalWorldID && !(m_pClient->m_Snap.m_aCharacters[i].m_Cur.m_Flags&COREFLAG_DDRACE_SOLO));
 				if(p < 2)
 				{
 					if(Opaque) continue;
@@ -633,8 +633,8 @@ void CPlayers::OnRender()
 					if((p % 2) == 1 && !Local) continue;
 				}
 
-				CNetObj_Character PrevChar = m_pClient->m_Snap.m_aCharacters[i].m_Prev;
-				CNetObj_Character CurChar = m_pClient->m_Snap.m_aCharacters[i].m_Cur;
+				CNetObj_DDRaceCharacter PrevChar = m_pClient->m_Snap.m_aCharacters[i].m_Prev;
+				CNetObj_DDRaceCharacter CurChar = m_pClient->m_Snap.m_aCharacters[i].m_Cur;
 
 				if(p < 4 && p != 1)
 					RenderHook(

@@ -61,6 +61,7 @@ public:
 	void SetEmote(int Emote, int Tick);
 
 	bool Solo() { return m_Core.m_Solo; }
+	int SoloClientID();
 
 	void Freeze();
 	void Unfreeze();

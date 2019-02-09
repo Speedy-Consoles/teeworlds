@@ -10,7 +10,7 @@ public:
 		int Damage, bool Explosive, float Force, int SoundImpact, int Weapon, int SwitchGroup, bool InvertSwitch, bool OnlySelf);
 
 	vec2 GetPos(float Time);
-	void FillInfo(CNetObj_Projectile *pProj, int World);
+	void FillInfo(CNetObj_DDRaceProjectile *pProj, int World);
 
 	virtual void Reset();
 	virtual void Tick();

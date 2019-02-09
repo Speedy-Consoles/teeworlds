@@ -210,7 +210,7 @@ class Flags:
 		self.values = values
 
 class NetObject:
-	def __init__(self, name, variables):
+	def __init__(self, name, variables, ddrace_variables=[], rebase=False):
 		l = name.split(":")
 		self.name = l[0]
 		self.base = ""
@@ -220,6 +220,19 @@ class NetObject:
 		self.struct_name = "CNetObj_%s" % self.name
 		self.enum_name = "NETOBJTYPE_%s" % self.name.upper()
 		self.variables = variables
+
+		# DDRace
+		self.ddrace = len(ddrace_variables) > 0 or rebase
+		self.rebased = rebase
+		self.ddrace_name = "DDRace" + self.name
+		if rebase:
+			self.ddrace_base = "DDRace" + self.base
+		else:
+			self.ddrace_base = self.base
+		self.ddrace_base_struct_name = "CNetObj_%s" % self.ddrace_base
+		self.ddrace_struct_name = "CNetObj_%s" % self.ddrace_name
+		self.ddrace_enum_name = "NETOBJTYPE_%s" % self.ddrace_name.upper()
+		self.ddrace_variables = ddrace_variables
 	def emit_declaration(self):
 		if self.base:
 			lines = ["struct %s : public %s"%(self.struct_name,self.base_struct_name), "{"]
@@ -228,6 +241,63 @@ class NetObject:
 		for v in self.variables:
 			lines += ["\t"+line for line in v.emit_declaration()]
 		lines += ["};"]
+
+		# DDRace
+		if self.ddrace:
+			lines += [""]
+			if self.ddrace_base:
+				lines += ["struct %s : public %s" % (self.ddrace_struct_name,self.ddrace_base_struct_name), "{"]
+			else:
+				lines += ["struct %s"%self.ddrace_struct_name, "{"]
+			for v in self.variables + self.ddrace_variables:
+				lines += ["\t"+line for line in v.emit_declaration()]
+
+			lines += [
+				"",
+				"\tstatic %s FromVanilla(const %s *VanillaObject) {" % (self.ddrace_struct_name,self.struct_name),
+				"\t\t%s DDRaceObject;" % self.ddrace_struct_name,
+			]
+
+			if self.base:
+				if self.rebased:
+					lines += ["\t\t*((%s *) &DDRaceObject) = %s::FromVanilla (VanillaObject);"
+							% (self.ddrace_base_struct_name, self.ddrace_base_struct_name)]
+				else:
+					lines += ["\t\t*((%s *) &DDRaceObject) = VanillaObject;"
+							% (self.ddrace_base_struct_name, self.ddrace_base_struct_name)]
+
+			for v in self.variables:
+				lines += ["\t\tDDRaceObject.%s = VanillaObject->%s;" % (v.name,v.name)]
+			for v in self.ddrace_variables:
+				lines += ["\t\tDDRaceObject.%s = %s;" % (v.name,v.default)]
+			lines += [
+				"\t\treturn DDRaceObject;",
+				"\t}",
+			]
+
+			lines += [
+				"",
+				"\t%s ToVanilla() const {" % self.struct_name,
+				"\t\t%s VanillaObject;" % self.struct_name,
+			]
+
+			if self.base:
+				if self.rebased:
+					lines += ["\t\t*((%s *) &VanillaObject) = %s::ToVanilla ();"
+							% (self.base_struct_name, self.ddrace_base_struct_name)]
+				else:
+					lines += ["\t\t*((%s *) &VanillaObject) = *((%s *) this);"
+							% (self.base_struct_name, self.ddrace_base_struct_name)]
+
+			for v in self.variables:
+				lines += ["\t\tVanillaObject.%s = %s;" % (v.name,v.name)]
+			lines += [
+				"\t\treturn VanillaObject;",
+				"\t}",
+			]
+
+			lines += ["};"]
+
 		return lines
 	def emit_validate(self):
 		lines = ["case %s:" % self.enum_name]
@@ -238,15 +308,33 @@ class NetObject:
 			lines += ["\t"+line for line in v.emit_validate()]
 		lines += ["\treturn 0;"]
 		lines += ["}"]
+
+		#DDRace
+		if self.ddrace:
+			lines += ["", "case %s:" % self.ddrace_enum_name]
+			lines += ["{"]
+			lines += ["\t%s *pObj = (%s *)pData;"%(self.ddrace_struct_name, self.ddrace_struct_name)]
+			lines += ["\tif(sizeof(*pObj) != Size) return -1;"]
+			for v in self.variables:
+				lines += ["\t"+line for line in v.emit_validate()]
+			for v in self.ddrace_variables:
+				lines += ["\t"+line for line in v.emit_validate()]
+			lines += ["\treturn 0;"]
+			lines += ["}"]
+
 		return lines
 
-
 class NetEvent(NetObject):
-	def __init__(self, name, variables):
-		NetObject.__init__(self, name, variables)
+	def __init__(self, name, variables, ddrace_variables=[], rebase=False):
+		NetObject.__init__(self, name, variables, ddrace_variables, rebase)
 		self.base_struct_name = "CNetEvent_%s" % self.base
 		self.struct_name = "CNetEvent_%s" % self.name
 		self.enum_name = "NETEVENTTYPE_%s" % self.name.upper()
+
+		# DDRace
+		self.ddrace_base_struct_name = "CNetEvent_%s" % self.ddrace_base
+		self.ddrace_struct_name = "CNetEvent_%s" % self.ddrace_name
+		self.ddrace_enum_name = "NETEVENTTYPE_%s" % self.ddrace_name.upper()
 
 class NetMessage(NetObject):
 	def __init__(self, name, variables):
@@ -285,8 +373,10 @@ class NetMessage(NetObject):
 
 
 class NetVariable:
-	def __init__(self, name):
+	def __init__(self, name, default=None):
 		self.name = name
+		if default is not None:
+			self.default = default
 	def emit_declaration(self):
 		return []
 	def emit_validate(self):
@@ -323,8 +413,8 @@ class NetIntAny(NetVariable):
 		return ["pPacker->AddInt(%s);" % self.name]
 
 class NetIntRange(NetIntAny):
-	def __init__(self, name, min, max):
-		NetIntAny.__init__(self,name)
+	def __init__(self, name, min, max, default=None):
+		NetIntAny.__init__(self,name,default)
 		self.min = str(min)
 		self.max = str(max)
 	def emit_validate(self):
@@ -333,12 +423,12 @@ class NetIntRange(NetIntAny):
 		return ["if(!CheckInt(\"%s\", pMsg->%s, %s, %s)) break;"%(self.name, self.name, self.min, self.max)]
 
 class NetEnum(NetIntRange):
-	def __init__(self, name, enum):
-		NetIntRange.__init__(self, name, 0, len(enum.values))
+	def __init__(self, name, enum, default=None):
+		NetIntRange.__init__(self, name, 0, len(enum.values), default)
 
 class NetFlag(NetIntAny):
-	def __init__(self, name, flag):
-		NetIntAny.__init__(self, name)
+	def __init__(self, name, flag, default=None):
+		NetIntAny.__init__(self, name, default)
 		if len(flag.values) > 0:
 			self.mask = "%s_%s" % (flag.name, flag.values[0])
 			for i in flag.values[1:]:
@@ -351,12 +441,12 @@ class NetFlag(NetIntAny):
 		return ["if(!CheckFlag(\"%s\", pMsg->%s, %s)) break;"%(self.name, self.name, self.mask)]
 
 class NetBool(NetIntRange):
-	def __init__(self, name):
-		NetIntRange.__init__(self,name,0,1)
+	def __init__(self, name, default=None):
+		NetIntRange.__init__(self,name,0,1,default)
 
 class NetTick(NetIntRange):
-	def __init__(self, name):
-		NetIntRange.__init__(self,name,0,'max_int')
+	def __init__(self, name, default=None):
+		NetIntRange.__init__(self,name,0,'max_int',default)
 
 class NetArray(NetVariable):
 	def __init__(self, var, size):
