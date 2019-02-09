@@ -979,7 +979,17 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 	}
 
 	if (pVanillaCharacter)
+	{
 		*pVanillaCharacter = pCharacter->ToVanilla();
+		if (m_Core.m_FreezeTick != 0)
+		{
+			pVanillaCharacter->m_Emote = EMOTE_PAIN;
+			pVanillaCharacter->m_Weapon = WEAPON_NINJA;
+			float NinjaTime = g_pData->m_Weapons.m_Ninja.m_Duration / 1000.0;
+			float FreezeTime = GameServer()->DDRaceTuning()->m_FreezeTime;
+			pVanillaCharacter->m_AmmoCount = Server()->Tick() + int (round (m_Core.m_FreezeTick / FreezeTime * NinjaTime));
+		}
+	}
 }
 
 void CCharacter::PostSnap()
