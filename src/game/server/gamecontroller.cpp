@@ -1075,7 +1075,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int WorldID
 		{
 			Result = Index;
 			for(int c = 0; c < Num; ++c)
-				if(GameServer()->GetWorld(WorldID)->Collision()->GetCollisionAt(m_aaSpawnPoints[Type][i]+Positions[Index]) ||
+				if(GameServer()->GetWorld(WorldID)->Collision()->GetCollisionAt(m_aaSpawnPoints[Type][i]+Positions[Index], !IsDDRace()) ||
 					distance(aEnts[c]->GetPos(), m_aaSpawnPoints[Type][i]+Positions[Index]) <= aEnts[c]->GetProximityRadius())
 				{
 					Result = -1;

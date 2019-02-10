@@ -64,7 +64,7 @@ void CLaser::DoBounce()
 
 	vec2 To = m_Pos + m_Dir * m_Energy;
 
-	if(Collision()->IntersectLine(m_Pos, To, 0x0, &To, CCollision::COLFLAG_SOLID_PROJ))
+	if(Collision()->IntersectLine(m_Pos, To, 0x0, &To, CCollision::COLFLAG_SOLID_PROJ, !GameServer()->IsDDRace()))
 	{
 		if(!HitCharacter(m_Pos, To))
 		{
@@ -75,7 +75,7 @@ void CLaser::DoBounce()
 			vec2 TempPos = m_Pos;
 			vec2 TempDir = m_Dir * 4.0f;
 
-			Collision()->MovePoint(&TempPos, &TempDir, 1.0f, 0, CCollision::COLFLAG_SOLID_PROJ);
+			Collision()->MovePoint(&TempPos, &TempDir, 1.0f, 0, CCollision::COLFLAG_SOLID_PROJ, !GameServer()->IsDDRace());
 			m_Pos = TempPos;
 			m_Dir = normalize(TempDir);
 

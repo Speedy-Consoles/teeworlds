@@ -25,3 +25,24 @@ void CGameControllerDDR::OnCharacterSpawn(CCharacter *pChr)
 		pChr->GiveWeapon(WEAPON_HAMMER, -1);
 		pChr->GiveWeapon(WEAPON_GUN, -1);
 }
+
+void CGameControllerDDR::OnRaceStart(CGameWorld *pWorld)
+{
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "A Team has started a race!");
+	GameServer()->SendBroadcast(aBuf, -1);
+}
+
+void CGameControllerDDR::OnRaceCancel(CGameWorld *pWorld)
+{
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "A Team has canceled a race!");
+	GameServer()->SendBroadcast(aBuf, -1);
+}
+
+void CGameControllerDDR::OnRaceFinish(CGameWorld *pWorld, int MilliSecs)
+{
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "A Team finished in %.2f seconds!", MilliSecs / 1000.0);
+	GameServer()->SendBroadcast(aBuf, -1);
+}

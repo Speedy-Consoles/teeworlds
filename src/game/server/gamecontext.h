@@ -159,10 +159,6 @@ public:
 	void CheckPureTuning();
 	void SendTuningParams(int ClientID);
 	bool ClientWorldRunning(int ClientID);
-	
-	void OnRaceStart(CGameWorld *pWorld);
-	void OnRaceFinish(CGameWorld *pWorld, int MilliSecs);
-	void OnRaceCancel(CGameWorld *pWorld);
 
 	//
 	void SwapTeams();

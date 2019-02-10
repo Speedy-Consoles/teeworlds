@@ -130,7 +130,7 @@ void CGameWorld::StartRace()
 	{
 		m_RaceState = RACESTATE_STARTED;
 		m_RaceStartTick = Server()->Tick();
-		GameServer()->OnRaceStart(this);
+		GameServer()->m_pController->OnRaceStart(this);
 	}
 }
 
@@ -141,7 +141,7 @@ void CGameWorld::OnPlayerDeath()
 		if(m_RaceState == RACESTATE_STARTED)
 		{
 			m_RaceState = RACESTATE_CANCELED;
-			GameServer()->OnRaceCancel(this);
+			GameServer()->m_pController->OnRaceCancel(this);
 		}
 
 		bool AllStarting = true;
@@ -182,7 +182,7 @@ void CGameWorld::OnFinish()
 	
 	if(AllFinished)
 	{
-		GameServer()->OnRaceFinish(this, ms);
+		GameServer()->m_pController->OnRaceFinish(this, ms);
 		m_RaceState = RACESTATE_FINISHED;
 	}
 	// TODO store finish time

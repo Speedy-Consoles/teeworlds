@@ -241,7 +241,7 @@ void CPlayers::RenderPlayer(
 	RenderInfo.m_GotAirJump = Player.m_Jumped&2?0:1;
 
 	bool Stationary = Player.m_VelX <= 1 && Player.m_VelX >= -1;
-	bool InAir = !(GetDDRTeamCollision(Player.m_WorldID)->GetCollisionMove(Player.m_X, Player.m_Y+16, Player.m_X, Player.m_Y+14)&CCollision::COLFLAG_SOLID);
+	bool InAir = !(GetDDRTeamCollision(Player.m_WorldID)->GetCollisionMove(Player.m_X, Player.m_Y+16, Player.m_X, Player.m_Y+14, !m_pClient->IsDDRace())&CCollision::COLFLAG_SOLID);
 	bool WantOtherDir = (Player.m_Direction == -1 && Vel.x > 0) || (Player.m_Direction == 1 && Vel.x < 0);
 
 	// evaluate animation

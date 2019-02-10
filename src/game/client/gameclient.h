@@ -56,6 +56,8 @@ class CGameClient : public IGameClient
 	int m_PredictedTick;
 	int m_LastNewPredictedTick;
 
+	bool m_IsDDRace;
+
 	static void ConTeam(IConsole::IResult *pResult, void *pUserData);
 	static void ConKill(IConsole::IResult *pResult, void *pUserData);
 	static void ConReadyChange(IConsole::IResult *pResult, void *pUserData);
@@ -94,6 +96,8 @@ public:
 	bool m_SuppressEvents;
 
 	bool m_aaDDRaceSwitchStates[NUM_WORLDS][255];
+	
+	bool IsDDRace() { return m_IsDDRace; }
 
 	// TODO: move this
 	CTuningParams m_Tuning;

@@ -37,15 +37,15 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 		CMapItemLayerTilemap *pTileMap = m_pLayers->GameLayer(t);
 		if (pTileMap)
 		{
+			m_apTiles[t] = static_cast<CTile *>(m_pLayers->Map()->GetData(pTileMap->m_Data));
 			m_aWidth[t] = pTileMap->m_Width;
 			m_aHeight[t] = pTileMap->m_Height;
-			m_apTiles[t] = static_cast<CTile *>(m_pLayers->Map()->GetData(pTileMap->m_Data));
 		}
 		else
 		{
+			m_apTiles[t] = 0;
 			m_aWidth[t] = 0;
 			m_aHeight[t] = 0;
-			m_apTiles[t] = 0;
 		}
 	}
 
@@ -55,76 +55,108 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 		m_pVanillaTiles = static_cast<CTile *>(m_pLayers->Map()->GetData(pVanillaTileMap->m_Data));
 		m_VanillaWidth = pVanillaTileMap->m_Width;
 		m_VanillaHeight = pVanillaTileMap->m_Height;
-	}
 
-	for(int i = 0; i < m_aWidth[GAMELAYERTYPE_COLLISION]*m_aHeight[GAMELAYERTYPE_COLLISION]; i++)
-	{
-		int Index = m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index;
-
-		if(Index > 128)
-			continue;		
-
-		switch(Index%16)
+		for(int i = 0; i < m_VanillaWidth*m_VanillaHeight; i++)
 		{
-		case TILE_DEATH:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_DEATH;
-			break;
-		case TILE_SOLID:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ;
-			break;
-		case TILE_NOHOOK:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ|COLFLAG_NOHOOK;
-			break;
-		case TILE_SEMISOLID_HOOK:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_PROJ;
-			break;
-		case TILE_SEMISOLID_PROJ:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK;
-			break;
-		case TILE_SEMISOLID_PROJ_NOHOOK:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_NOHOOK;
-			break;
-		case TILE_SEMISOLID_BOTH:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID;
-			break;
-		default:
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = 0;
-		}
+			int Index = m_pVanillaTiles[i].m_Index;
 
-		if(m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index&COLFLAG_SOLID)
-		{
-			int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags;
-			m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags = Flags & TILEFLAG_INVERT_SWITCH;
+			if(Index > 128)
+				continue;
 
-			switch(Index/16)
+			switch(Index)
 			{
-				case ROW_ONE_OPEN:
-					if(Flags&TILEFLAG_ROTATE)
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
-					else
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
-					break;
-				case ROW_TWO_OPEN:
-					if(Flags&TILEFLAG_ROTATE)
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_LEFT|DIRFLAG_RIGHT;
-					else
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_DOWN|DIRFLAG_UP;
-					break;
-				case ROW_TWO_CORNER_OPEN:
-					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
-					if(Flags&TILEFLAG_ROTATE)
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_UP : DIRFLAG_DOWN;
-					else
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
-					break;
-				case ROW_THREE_OPEN:
-					if(Flags&TILEFLAG_ROTATE)
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_UP|DIRFLAG_DOWN|(Flags&TILEFLAG_VFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT);
-					else
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_RIGHT|DIRFLAG_LEFT|(Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP);
-					break;
+			case TILE_DEATH:
+				m_pVanillaTiles[i].m_Index = COLFLAG_DEATH;
+				break;
+			case TILE_SOLID:
+				m_pVanillaTiles[i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ;
+				break;
+			case TILE_NOHOOK:
+				m_pVanillaTiles[i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ|COLFLAG_NOHOOK;
+				break;
+			default:
+				m_pVanillaTiles[i].m_Index = 0;
 			}
 		}
+	}
+
+	if(m_apTiles[GAMELAYERTYPE_COLLISION])
+	{
+		for(int i = 0; i < m_aWidth[GAMELAYERTYPE_COLLISION]*m_aHeight[GAMELAYERTYPE_COLLISION]; i++)
+		{
+			int Index = m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index;
+
+			if(Index > 128)
+				continue;		
+
+			switch(Index%16)
+			{
+			case TILE_DEATH:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_DEATH;
+				break;
+			case TILE_SOLID:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ;
+				break;
+			case TILE_NOHOOK:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ|COLFLAG_NOHOOK;
+				break;
+			case TILE_SEMISOLID_HOOK:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_PROJ;
+				break;
+			case TILE_SEMISOLID_PROJ:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK;
+				break;
+			case TILE_SEMISOLID_PROJ_NOHOOK:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_NOHOOK;
+				break;
+			case TILE_SEMISOLID_BOTH:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID;
+				break;
+			default:
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = 0;
+			}
+
+			if(m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index&COLFLAG_SOLID)
+			{
+				int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags;
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags = Flags & TILEFLAG_INVERT_SWITCH;
+
+				switch(Index/16)
+				{
+					case ROW_ONE_OPEN:
+						if(Flags&TILEFLAG_ROTATE)
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
+						else
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
+						break;
+					case ROW_TWO_OPEN:
+						if(Flags&TILEFLAG_ROTATE)
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_LEFT|DIRFLAG_RIGHT;
+						else
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_DOWN|DIRFLAG_UP;
+						break;
+					case ROW_TWO_CORNER_OPEN:
+						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
+						if(Flags&TILEFLAG_ROTATE)
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_UP : DIRFLAG_DOWN;
+						else
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
+						break;
+					case ROW_THREE_OPEN:
+						if(Flags&TILEFLAG_ROTATE)
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_UP|DIRFLAG_DOWN|(Flags&TILEFLAG_VFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT);
+						else
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_RIGHT|DIRFLAG_LEFT|(Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP);
+						break;
+				}
+			}
+		}
+	}
+	else
+	{
+		m_apTiles[GAMELAYERTYPE_COLLISION] = m_pVanillaTiles;
+		m_aWidth[GAMELAYERTYPE_COLLISION] = m_VanillaWidth;
+		m_aHeight[GAMELAYERTYPE_COLLISION] = m_VanillaHeight;
 	}
 
 	for(int i = 0; i < m_aWidth[GAMELAYERTYPE_FREEZE]*m_aHeight[GAMELAYERTYPE_FREEZE]; i++)
@@ -233,6 +265,12 @@ int CCollision::PosToIndex(float x, float y, int Layer) const
 	return TilePosToIndex(TilePos.x, TilePos.y, Layer);
 }
 
+int CCollision::VanillaPosToIndex(float x, float y) const
+{
+	ivec2 TilePos = PosToTilePos(x, y);
+	return VanillaTilePosToIndex(TilePos.x, TilePos.y);
+}
+
 int CCollision::GetDirFlags(ivec2 Dir) const
 {
 	int Flags = 0;
@@ -249,25 +287,36 @@ int CCollision::GetDirFlags(ivec2 Dir) const
 	return Flags;
 }
 
-int CCollision::GetCollisionAt(float x, float y) const
+int CCollision::GetCollisionAt(float x, float y, bool Vanilla) const
 {
-	int Index = PosToIndex(x, y, GAMELAYERTYPE_COLLISION);
-	int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Flags;
-	bool Invert = Flags&TILEFLAG_INVERT_SWITCH;
-	int SwitchGroup = GetSwitchGroup(Index, GAMELAYERTYPE_COLLISION);
-	bool Switch;
-	if(SwitchGroup != -1)
-		Switch = m_pSwitchStates[SwitchGroup];
+	if (Vanilla)
+	{
+		int Index = VanillaPosToIndex(x, y);
+		if(m_pVanillaTiles[Index].m_Index <= 128)
+			return m_pVanillaTiles[Index].m_Index;
+		else
+			return 0;
+	}
 	else
-		Switch = Invert;
-	
-	if(Switch == Invert && m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index <= 128)
-		return m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index;
-	else
-		return 0;
+	{
+		int Index = PosToIndex(x, y, GAMELAYERTYPE_COLLISION);
+		int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Flags;
+		bool Invert = Flags&TILEFLAG_INVERT_SWITCH;
+		int SwitchGroup = GetSwitchGroup(Index, GAMELAYERTYPE_COLLISION);
+		bool Switch;
+		if(SwitchGroup != -1)
+			Switch = m_pSwitchStates[SwitchGroup];
+		else
+			Switch = Invert;
+		
+		if(Switch == Invert && m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index <= 128)
+			return m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index;
+		else
+			return 0;
+	}
 }
 
-int CCollision::GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask, bool Vanilla) const
+int CCollision::GetCollisionMove(float x, float y, float OldX, float OldY, bool Vanilla, int DirFlagsMask) const
 {
 	ivec2 Pos = PosToTilePos(x, y);
 	ivec2 OldPos = PosToTilePos(OldX, OldY);
@@ -293,13 +342,9 @@ int CCollision::GetCollisionMove(float x, float y, float OldX, float OldY, int D
 		else
 			Switch = Invert;
 
-		int VanillaDirFlags = DIRFLAG_UP|DIRFLAG_DOWN|DIRFLAG_RIGHT|DIRFLAG_LEFT;
 		if(Switch == Invert
 				&& m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index <= 128
-				&& (
-					(!Vanilla && (Flags&DirFlags) != DirFlags)
-					|| (Vanilla && (Flags&VanillaDirFlags) == VanillaDirFlags)
-				))
+				&& (Flags&DirFlags) != DirFlags)
 			return m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index;
 		else
 			return 0;
@@ -307,7 +352,7 @@ int CCollision::GetCollisionMove(float x, float y, float OldX, float OldY, int D
 }
 
 // TODO: rewrite this smarter!
-int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int ColFlag) const
+int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int ColFlag, bool Vanilla) const
 {
 	float Distance = distance(Pos0, Pos1);
 	int End(Distance+1);
@@ -317,7 +362,7 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 	{
 		float a = i/float(End);
 		vec2 Pos = mix(Pos0, Pos1, a);
-		int Col = GetCollisionMove(Pos, Last);
+		int Col = GetCollisionMove(Pos, Last, Vanilla);
 		if(Col&ColFlag)
 		{
 			if(pOutCollision)
@@ -336,17 +381,17 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 }
 
 // TODO: OPT: rewrite this smarter!
-void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces, int ColFlag) const
+void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces, int ColFlag, bool Vanilla) const
 {
 	if(pBounces)
 		*pBounces = 0;
 
 	vec2 Pos = *pInoutPos;
 	vec2 Vel = *pInoutVel;
-	if(GetCollisionMove(Pos + Vel, Pos)&ColFlag)
+	if(GetCollisionMove(Pos + Vel, Pos, Vanilla)&ColFlag)
 	{
 		int Affected = 0;
-		if(GetCollisionMove(Pos.x + Vel.x, Pos.y, Pos)&ColFlag)
+		if(GetCollisionMove(Pos.x + Vel.x, Pos.y, Pos, Vanilla)&ColFlag)
 		{
 			pInoutVel->x *= -Elasticity;
 			if(pBounces)
@@ -354,7 +399,7 @@ void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, i
 			Affected++;
 		}
 
-		if(GetCollisionMove(Pos.x, Pos.y + Vel.y, Pos)&ColFlag)
+		if(GetCollisionMove(Pos.x, Pos.y + Vel.y, Pos, Vanilla)&ColFlag)
 		{
 			pInoutVel->y *= -Elasticity;
 			if(pBounces)
@@ -364,13 +409,13 @@ void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, i
 
 		if(Affected == 0)
 		{
-			if(GetCollisionMove(Pos + Vel, Pos.x, Pos.y + Vel.y)&ColFlag)
+			if(GetCollisionMove(Pos + Vel, Pos.x, Pos.y + Vel.y, Vanilla)&ColFlag)
 			{
 				pInoutVel->x *= -Elasticity;
 				if(pBounces)
 					(*pBounces)++;
 			}
-			if(GetCollisionMove(Pos + Vel, Pos.x + Vel.x, Pos.y)&ColFlag)
+			if(GetCollisionMove(Pos + Vel, Pos.x + Vel.x, Pos.y, Vanilla)&ColFlag)
 			{
 				pInoutVel->y *= -Elasticity;
 				if(pBounces)
@@ -384,16 +429,16 @@ void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, i
 	}
 }
 
-bool CCollision::TestBox(vec2 Pos, vec2 Size) const
+bool CCollision::TestBox(vec2 Pos, vec2 Size, bool Vanilla) const
 {
 	Size *= 0.5f;
-	if(GetCollisionAt(Pos.x-Size.x, Pos.y-Size.y))
+	if(GetCollisionAt(Pos.x-Size.x, Pos.y-Size.y, Vanilla))
 		return true;
-	if(GetCollisionAt(Pos.x+Size.x, Pos.y-Size.y))
+	if(GetCollisionAt(Pos.x+Size.x, Pos.y-Size.y, Vanilla))
 		return true;
-	if(GetCollisionAt(Pos.x-Size.x, Pos.y+Size.y))
+	if(GetCollisionAt(Pos.x-Size.x, Pos.y+Size.y, Vanilla))
 		return true;
-	if(GetCollisionAt(Pos.x+Size.x, Pos.y+Size.y))
+	if(GetCollisionAt(Pos.x+Size.x, Pos.y+Size.y, Vanilla))
 		return true;
 	return false;
 }
@@ -401,13 +446,13 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size) const
 bool CCollision::TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) const
 {
 	Size *= 0.5f;
-	if(GetCollisionMove(Pos.x-Size.x, Pos.y-Size.y, OldPos.x-Size.x, OldPos.y-Size.y, DIRFLAG_UP|DIRFLAG_LEFT, Vanilla))
+	if(GetCollisionMove(Pos.x-Size.x, Pos.y-Size.y, OldPos.x-Size.x, OldPos.y-Size.y, Vanilla, DIRFLAG_UP|DIRFLAG_LEFT))
 		return true;
-	if(GetCollisionMove(Pos.x+Size.x, Pos.y-Size.y, OldPos.x+Size.x, OldPos.y-Size.y, DIRFLAG_UP|DIRFLAG_RIGHT, Vanilla))
+	if(GetCollisionMove(Pos.x+Size.x, Pos.y-Size.y, OldPos.x+Size.x, OldPos.y-Size.y, Vanilla, DIRFLAG_UP|DIRFLAG_RIGHT))
 		return true;
-	if(GetCollisionMove(Pos.x-Size.x, Pos.y+Size.y, OldPos.x-Size.x, OldPos.y+Size.y, DIRFLAG_DOWN|DIRFLAG_LEFT, Vanilla))
+	if(GetCollisionMove(Pos.x-Size.x, Pos.y+Size.y, OldPos.x-Size.x, OldPos.y+Size.y, Vanilla, DIRFLAG_DOWN|DIRFLAG_LEFT))
 		return true;
-	if(GetCollisionMove(Pos.x+Size.x, Pos.y+Size.y, OldPos.x+Size.x, OldPos.y+Size.y, DIRFLAG_DOWN|DIRFLAG_RIGHT, Vanilla))
+	if(GetCollisionMove(Pos.x+Size.x, Pos.y+Size.y, OldPos.x+Size.x, OldPos.y+Size.y, Vanilla, DIRFLAG_DOWN|DIRFLAG_RIGHT))
 		return true;
 	return false;
 }
@@ -415,9 +460,9 @@ bool CCollision::TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) con
 bool CCollision::TestHLineMove(vec2 Pos, vec2 OldPos, float Length, bool Vanilla) const
 {
 	Length *= 0.5f;
-	if(GetCollisionMove(Pos.x-Length, Pos.y, OldPos.x-Length, OldPos.y, DIRFLAG_UP|DIRFLAG_DOWN, Vanilla))
+	if(GetCollisionMove(Pos.x-Length, Pos.y, OldPos.x-Length, OldPos.y, Vanilla, DIRFLAG_UP|DIRFLAG_DOWN))
 		return true;
-	if(GetCollisionMove(Pos.x+Length, Pos.y, OldPos.x+Length, OldPos.y, DIRFLAG_UP|DIRFLAG_DOWN, Vanilla))
+	if(GetCollisionMove(Pos.x+Length, Pos.y, OldPos.x+Length, OldPos.y, Vanilla, DIRFLAG_UP|DIRFLAG_DOWN))
 		return true;
 	return false;
 }

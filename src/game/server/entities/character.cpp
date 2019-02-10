@@ -125,7 +125,7 @@ void CCharacter::SetWeapon(int W)
 bool CCharacter::IsGrounded()
 {
 	// TODO DDRace why?
-	if(Collision()->TestHLineMove(m_Pos + vec2(0, GetProximityRadius() / 2 + 5), m_Pos + vec2(0, GetProximityRadius() / 2), GetProximityRadius()), false)
+	if(Collision()->TestHLineMove(m_Pos + vec2(0, GetProximityRadius() / 2 + 5), m_Pos + vec2(0, GetProximityRadius() / 2), GetProximityRadius(), !GameServer()->IsDDRace()))
 		return true;
 	return false;
 }
@@ -168,7 +168,7 @@ void CCharacter::HandleNinja()
 		vec2 OldPos = m_Pos;
 
 		CCollision::CTriggers aTriggers[4 * (int)((MAX_SPEED + 15) / 16) + 2];
-		int Size = Collision()->MoveBox(&m_Core.m_Pos, &m_Core.m_Vel, aTriggers, vec2(GetProximityRadius(), GetProximityRadius()), 0.f);
+		int Size = Collision()->MoveBox(&m_Core.m_Pos, &m_Core.m_Vel, aTriggers, vec2(GetProximityRadius(), GetProximityRadius()), 0.f, !GameServer()->IsDDRace());
 		for(int i = 0; i < Size; i++)
 		{
 			m_Core.HandleTriggers(aTriggers[i]);
@@ -333,7 +333,7 @@ void CCharacter::FireWeapon()
 	vec2 HammerStartPos = m_Pos+Direction*GetProximityRadius()*0.75f;
 	vec2 ProjStartPos = HammerStartPos;
 	// dirty fix
-	Collision()->IntersectLine(m_Pos, ProjStartPos, 0, &ProjStartPos, CCollision::COLFLAG_SOLID_PROJ);
+	Collision()->IntersectLine(m_Pos, ProjStartPos, 0, &ProjStartPos, CCollision::COLFLAG_SOLID_PROJ, !GameServer()->IsDDRace());
 
 	switch(m_ActiveWeapon)
 	{
@@ -546,13 +546,13 @@ void CCharacter::ResetInput()
 void CCharacter::Tick()
 {
 	m_Core.m_Input = m_Input;
-	m_Core.Tick(true, false);
+	m_Core.Tick(true, !GameServer()->IsDDRace());
 
 	// handle death-tiles and leaving gamelayer
-	if(Collision()->GetCollisionAt(m_Pos.x+GetProximityRadius()/3.f, m_Pos.y-GetProximityRadius()/3.f)&CCollision::COLFLAG_DEATH ||
-		Collision()->GetCollisionAt(m_Pos.x+GetProximityRadius()/3.f, m_Pos.y+GetProximityRadius()/3.f)&CCollision::COLFLAG_DEATH ||
-		Collision()->GetCollisionAt(m_Pos.x-GetProximityRadius()/3.f, m_Pos.y-GetProximityRadius()/3.f)&CCollision::COLFLAG_DEATH ||
-		Collision()->GetCollisionAt(m_Pos.x-GetProximityRadius()/3.f, m_Pos.y+GetProximityRadius()/3.f)&CCollision::COLFLAG_DEATH ||
+	if(Collision()->GetCollisionAt(m_Pos.x+GetProximityRadius()/3.f, m_Pos.y-GetProximityRadius()/3.f, !GameServer()->IsDDRace())&CCollision::COLFLAG_DEATH ||
+		Collision()->GetCollisionAt(m_Pos.x+GetProximityRadius()/3.f, m_Pos.y+GetProximityRadius()/3.f, !GameServer()->IsDDRace())&CCollision::COLFLAG_DEATH ||
+		Collision()->GetCollisionAt(m_Pos.x-GetProximityRadius()/3.f, m_Pos.y-GetProximityRadius()/3.f, !GameServer()->IsDDRace())&CCollision::COLFLAG_DEATH ||
+		Collision()->GetCollisionAt(m_Pos.x-GetProximityRadius()/3.f, m_Pos.y+GetProximityRadius()/3.f, !GameServer()->IsDDRace())&CCollision::COLFLAG_DEATH ||
 		GameLayerClipped(m_Pos))
 	{
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
@@ -577,16 +577,16 @@ void CCharacter::TickDefered()
 	//lastsentcore
 	vec2 StartPos = m_Core.m_Pos;
 	vec2 StartVel = m_Core.m_Vel;
-	bool StuckBefore = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
+	bool StuckBefore = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f), !GameServer()->IsDDRace());
 
 	CCollision::CTriggers aTriggers[4 * (int)((MAX_SPEED + 15) / 16) + 2];
-	int Size = m_Core.Move(aTriggers, false);
+	int Size = m_Core.Move(aTriggers, !GameServer()->IsDDRace());
 	for(int i = 0; i < Size; i++)
 		HandleTriggers(aTriggers[i]);
 
-	bool StuckAfterMove = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
+	bool StuckAfterMove = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f), !GameServer()->IsDDRace());
 	m_Core.Quantize();
-	bool StuckAfterQuant = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
+	bool StuckAfterQuant = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f), !GameServer()->IsDDRace());
 	m_Pos = m_Core.m_Pos;
 
 	if(!StuckBefore && (StuckAfterMove || StuckAfterQuant))

@@ -103,7 +103,7 @@ void CParticles::Update(float TimePassed)
 
 			// move the point
 			vec2 Vel = m_aParticles[i].m_Vel*TimePassed;
-			GetDDRTeamCollision(m_aParticles[i].m_WorldID)->MovePoint(&m_aParticles[i].m_Pos, &Vel, 0.1f+0.9f*frandom(), NULL, CCollision::COLFLAG_SOLID);
+			GetDDRTeamCollision(m_aParticles[i].m_WorldID)->MovePoint(&m_aParticles[i].m_Pos, &Vel, 0.1f+0.9f*frandom(), NULL, CCollision::COLFLAG_SOLID, !m_pClient->IsDDRace());
 			m_aParticles[i].m_Vel = Vel* (1.0f/TimePassed);
 
 			m_aParticles[i].m_Life += TimePassed;

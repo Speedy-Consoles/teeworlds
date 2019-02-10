@@ -72,10 +72,7 @@ void CLayers::Init(class IKernel *pKernel, IMap *pMap)
 
 CMapItemLayerTilemap *CLayers::GameLayer(int GameLayerType) const
 {
-	CMapItemLayerTilemap *pTileMap = m_apGameLayers[GameLayerType];
-	if (!pTileMap && GameLayerType == GAMELAYERTYPE_COLLISION)
-		pTileMap = m_pVanillaLayer;
-	return pTileMap;
+	return m_apGameLayers[GameLayerType];
 }
 
 CMapItemLayerTilemap *CLayers::VanillaLayer() const

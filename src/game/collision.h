@@ -27,6 +27,7 @@ class CCollision
 	int TilePosToIndex(int x, int y, int Layer) const;
 	int VanillaTilePosToIndex(int x, int y) const;
 	int PosToIndex(float x, float y, int Layer) const;
+	int VanillaPosToIndex(float x, float y) const;
 	int GetDirFlags(ivec2 Dir) const;
 
 public:
@@ -96,21 +97,21 @@ public:
 	void Init(class CCollision *pOther, bool *pSwitchStates);
 	int GetNumCheckpoints() const;
 	int GetDirFlagsAt(float x, float y) const;
-	int GetCollisionAt(float x, float y) const;
-	int GetCollisionAt(vec2 Pos) const { return GetCollisionAt(Pos.x, Pos.y); }
-	int GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask = ~0, bool Vanilla = false) const;
-	int GetCollisionMove(vec2 Pos, vec2 OldPos) const { return GetCollisionMove(Pos.x, Pos.y, OldPos.x, OldPos.y); }
-	int GetCollisionMove(vec2 Pos, float OldX, float OldY) const { return GetCollisionMove(Pos.x, Pos.y, OldX, OldY); }
-	int GetCollisionMove(float x, float y, vec2 OldPos) const { return GetCollisionMove(x, y, OldPos.x, OldPos.y); }
+	int GetCollisionAt(float x, float y, bool Vanilla) const;
+	int GetCollisionAt(vec2 Pos, bool Vanilla) const { return GetCollisionAt(Pos.x, Pos.y, Vanilla); }
+	int GetCollisionMove(float x, float y, float OldX, float OldY, bool Vanilla, int DirFlagsMask = ~0) const;
+	int GetCollisionMove(vec2 Pos, vec2 OldPos, bool Vanilla) const { return GetCollisionMove(Pos.x, Pos.y, OldPos.x, OldPos.y, Vanilla); }
+	int GetCollisionMove(vec2 Pos, float OldX, float OldY, bool Vanilla) const { return GetCollisionMove(Pos.x, Pos.y, OldX, OldY, Vanilla); }
+	int GetCollisionMove(float x, float y, vec2 OldPos, bool Vanilla) const { return GetCollisionMove(x, y, OldPos.x, OldPos.y, Vanilla); }
 	int GetWidth() const { return m_aWidth[GAMELAYERTYPE_COLLISION]; };
 	int GetHeight() const { return m_aHeight[GAMELAYERTYPE_COLLISION]; };
-	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int ColFlag) const;
-	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces, int ColFlag) const;
-	int MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity, bool Vanilla = false) const;
+	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int ColFlag, bool Vanilla) const;
+	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces, int ColFlag, bool Vanilla) const;
+	int MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity, bool Vanilla) const;
 	void HandleTriggerTiles(int x, int y, CTriggers *pOutTriggers) const;
-	bool TestBox(vec2 Pos, vec2 Size) const;
+	bool TestBox(vec2 Pos, vec2 Size, bool Vanilla) const;
 	bool TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) const;
-	bool TestHLineMove(vec2 Pos, vec2 OldPos, float Length, bool Vanilla = false) const;
+	bool TestHLineMove(vec2 Pos, vec2 OldPos, float Length, bool Vanilla) const;
 };
 
 #endif

@@ -191,7 +191,7 @@ void CGameControllerCTF::Tick()
 			int Num = GameServer()->GetWorld(0)->FindEntities(F->GetPos(), CFlag::ms_PhysSize, (CEntity**)apCloseCCharacters, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 			for(int i = 0; i < Num; i++)
 			{
-				if(!apCloseCCharacters[i]->IsAlive() || apCloseCCharacters[i]->GetPlayer()->GetTeam() == TEAM_SPECTATORS || GameServer()->GetWorld(0)->Collision()->IntersectLine(F->GetPos(), apCloseCCharacters[i]->GetPos(), NULL, NULL, CCollision::COLFLAG_SOLID))
+				if(!apCloseCCharacters[i]->IsAlive() || apCloseCCharacters[i]->GetPlayer()->GetTeam() == TEAM_SPECTATORS || GameServer()->GetWorld(0)->Collision()->IntersectLine(F->GetPos(), apCloseCCharacters[i]->GetPos(), NULL, NULL, CCollision::COLFLAG_SOLID, true))
 					continue;
 
 				if(apCloseCCharacters[i]->GetPlayer()->GetTeam() == F->GetTeam())

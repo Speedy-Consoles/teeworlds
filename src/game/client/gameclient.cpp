@@ -315,6 +315,8 @@ void CGameClient::OnInit()
 	m_ServerMode = SERVERMODE_PURE;
 
 	m_IsXmasDay = time_isxmasday();
+
+	m_IsDDRace = false;
 }
 
 void CGameClient::OnUpdate()
@@ -353,6 +355,7 @@ int CGameClient::OnSnapInput(int *pData)
 
 void CGameClient::OnConnected()
 {
+	m_IsDDRace = false;
 	m_Layers.Init(Kernel());
 	m_aCollision[0].Init(Layers(), m_aaDDRaceSwitchStates[0]);
 	for(int i = 0; i < NUM_WORLDS; i++)
@@ -453,8 +456,8 @@ void CGameClient::EvolveCharacter(CNetObj_DDRaceCharacter *pCharacter, int Tick)
 	while(pCharacter->m_Tick < Tick)
 	{
 		pCharacter->m_Tick++;
-		TempCore.Tick(false, false);
-		TempCore.Move(false);
+		TempCore.Tick(false, !m_IsDDRace);
+		TempCore.Move(!m_IsDDRace);
 		TempCore.Quantize();
 	}
 
@@ -520,6 +523,7 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker)
 
 		// apply new tuning
 		m_DDRaceTuning = NewTuning;
+		m_IsDDRace = true;
 		return;
 	}
 	else if(MsgId == NETMSGTYPE_SV_VOTEOPTIONLISTADD)
@@ -1399,10 +1403,10 @@ void CGameClient::OnPredict()
 				const int *pInput = Client()->GetInput(Tick);
 				if(pInput)
 					World.m_apCharacters[c]->m_Input = *((const CNetObj_PlayerInput*)pInput);
-				World.m_apCharacters[c]->Tick(true, false);
+				World.m_apCharacters[c]->Tick(true, !m_IsDDRace);
 			}
 			else
-				World.m_apCharacters[c]->Tick(false, false);
+				World.m_apCharacters[c]->Tick(false, !m_IsDDRace);
 
 		}
 
@@ -1412,7 +1416,7 @@ void CGameClient::OnPredict()
 			if(!World.m_apCharacters[c])
 				continue;
 
-			World.m_apCharacters[c]->Move(false);
+			World.m_apCharacters[c]->Move(!m_IsDDRace);
 			World.m_apCharacters[c]->Quantize();
 		}
 

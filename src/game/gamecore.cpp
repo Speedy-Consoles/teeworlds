@@ -86,7 +86,6 @@ void CCharacterCore::Tick(bool UseInput, bool Vanilla)
 
 	// get ground state
 	bool Grounded = false;
-	// TODO DDRace build vanilla version
 	if(m_pCollision->TestHLineMove(m_Pos + vec2(0, PhysSize / 2 + 5), m_Pos + vec2(0, PhysSize / 2), PhysSize, Vanilla))
 		Grounded = true;
 
@@ -139,8 +138,8 @@ void CCharacterCore::Tick(bool UseInput, bool Vanilla)
 				m_HookState = HOOK_FLYING;
 				m_HookPos = m_Pos+TargetDirection*PhysSize*1.5f;
 				// dirty fix
-				if(m_pCollision->GetCollisionAt(m_HookPos)&CCollision::COLFLAG_SOLID_HOOK)
-					StartHit = m_pCollision->IntersectLine(m_Pos, m_HookPos, 0, 0, CCollision::COLFLAG_SOLID_HOOK);
+				if(m_pCollision->GetCollisionAt(m_HookPos, Vanilla)&CCollision::COLFLAG_SOLID_HOOK)
+					StartHit = m_pCollision->IntersectLine(m_Pos, m_HookPos, 0, 0, CCollision::COLFLAG_SOLID_HOOK, false);
 				m_HookDir = TargetDirection;
 				m_HookedPlayer = -1;
 				m_HookTick = 0;
@@ -199,7 +198,7 @@ void CCharacterCore::Tick(bool UseInput, bool Vanilla)
 		bool GoingToHitGround = false;
 		bool GoingToRetract = false;
 		// dirty fix part two
-		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0, CCollision::COLFLAG_SOLID_HOOK);
+		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0, CCollision::COLFLAG_SOLID_HOOK, Vanilla);
 		if(StartHit && !Vanilla)
 		{
 			NewPos = m_HookPos;
@@ -322,7 +321,7 @@ void CCharacterCore::Tick(bool UseInput, bool Vanilla)
 		}
 
 		// for disappearing walls
-		if(m_HookedPlayer == -1 && !Vanilla && !(m_pCollision->GetCollisionAt(m_HookPos)&CCollision::COLFLAG_SOLID_HOOK))
+		if(m_HookedPlayer == -1 && !Vanilla && !(m_pCollision->GetCollisionAt(m_HookPos, Vanilla)&CCollision::COLFLAG_SOLID_HOOK))
 		{
 			m_HookState = HOOK_RETRACTED;
 			m_HookPos = m_Pos;

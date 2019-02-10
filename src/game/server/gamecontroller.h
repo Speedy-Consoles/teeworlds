@@ -7,6 +7,8 @@
 
 #include <generated/protocol.h>
 
+#include <game/server/gameworld.h>
+
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
@@ -167,6 +169,10 @@ public:
 			bool?
 	*/
 	virtual bool OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, bool InvertSwitch);
+
+	virtual void OnRaceStart(CGameWorld *pWorld) {}
+	virtual void OnRaceFinish(CGameWorld *pWorld, int MilliSecs) {}
+	virtual void OnRaceCancel(CGameWorld *pWorld) {}
 
 	void OnPlayerConnect(class CPlayer *pPlayer);
 	void OnPlayerDisconnect(class CPlayer *pPlayer);
