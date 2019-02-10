@@ -168,7 +168,7 @@ void CLayerTiles::Render(bool TileSetPicker)
 		{
 			Graphics()->TextureSet(m_AltTexture);
 			Flags |= LAYERRENDERFLAG_FLAGS_AS_INDEX;
-		}	
+		}
 		Graphics()->BlendNormal();
 		m_pEditor->RenderTools()->RenderTilemap(m_pTiles, m_Width, m_Height, 32.0f, Color, Flags,
 							m_pEditor->EnvelopeEval, m_pEditor, m_ColorEnv, m_ColorEnvOffset, 0);
@@ -325,8 +325,10 @@ int CLayerTiles::BrushGrab(CLayerGroup *pBrush, CUIRect Rect)
 	CLayerTiles *pGrabbed = new CLayerTiles(r.w, r.h);
 	pGrabbed->m_pEditor = m_pEditor;
 	pGrabbed->m_Texture = m_Texture;
+	pGrabbed->m_AltTexture = m_AltTexture;
 	pGrabbed->m_Image = m_Image;
 	pGrabbed->m_Game = m_Game;
+	pGrabbed->m_GameLayerType = m_GameLayerType;
 	pBrush->AddLayer(pGrabbed);
 
 	// copy the tiles
@@ -433,8 +435,6 @@ void CLayerTiles::BrushFlipY()
 		for(int y = 0; y < m_Height; y++)
 			for(int x = 0; x < m_Width; x++)
 				m_pTiles[y*m_Width+x].m_Flags ^= SPEEDUPFLAG_FLIP;
-
-	dbg_msg("dbg", "%d", m_pTiles[0].m_Flags);
 }
 
 void CLayerTiles::BrushRotate(float Amount)

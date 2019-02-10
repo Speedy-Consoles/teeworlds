@@ -18,3 +18,10 @@ void CGameControllerDDR::Tick()
 
 	IGameController::Tick();
 }
+
+void CGameControllerDDR::OnCharacterSpawn(CCharacter *pChr)
+{
+		pChr->IncreaseHealth(10);
+		pChr->GiveWeapon(WEAPON_HAMMER, -1);
+		pChr->GiveWeapon(WEAPON_GUN, -1);
+}
