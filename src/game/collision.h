@@ -11,6 +11,9 @@ class CCollision
 	class CTile *m_apTiles[NUM_GAMELAYERTYPES];
 	int m_aWidth[NUM_GAMELAYERTYPES];
 	int m_aHeight[NUM_GAMELAYERTYPES];
+	class CTile *m_pVanillaTiles;
+	int m_VanillaWidth;
+	int m_VanillaHeight;
 	int m_pOpen;
 	class CLayers *m_pLayers;
 	bool *m_pSwitchStates;
@@ -22,6 +25,7 @@ class CCollision
 	int GetSwitchGroup(int PosIndex, int Layer) const;
 	ivec2 PosToTilePos(float x, float y) const;
 	int TilePosToIndex(int x, int y, int Layer) const;
+	int VanillaTilePosToIndex(int x, int y) const;
 	int PosToIndex(float x, float y, int Layer) const;
 	int GetDirFlags(ivec2 Dir) const;
 
@@ -94,7 +98,7 @@ public:
 	int GetDirFlagsAt(float x, float y) const;
 	int GetCollisionAt(float x, float y) const;
 	int GetCollisionAt(vec2 Pos) const { return GetCollisionAt(Pos.x, Pos.y); }
-	int GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask = ~0) const;
+	int GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask = ~0, bool Vanilla = false) const;
 	int GetCollisionMove(vec2 Pos, vec2 OldPos) const { return GetCollisionMove(Pos.x, Pos.y, OldPos.x, OldPos.y); }
 	int GetCollisionMove(vec2 Pos, float OldX, float OldY) const { return GetCollisionMove(Pos.x, Pos.y, OldX, OldY); }
 	int GetCollisionMove(float x, float y, vec2 OldPos) const { return GetCollisionMove(x, y, OldPos.x, OldPos.y); }
@@ -102,11 +106,11 @@ public:
 	int GetHeight() const { return m_aHeight[GAMELAYERTYPE_COLLISION]; };
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int ColFlag) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces, int ColFlag) const;
-	int MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity) const;
+	int MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity, bool Vanilla = false) const;
 	void HandleTriggerTiles(int x, int y, CTriggers *pOutTriggers) const;
 	bool TestBox(vec2 Pos, vec2 Size) const;
-	bool TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size) const;
-	bool TestHLineMove(vec2 Pos, vec2 OldPos, float Length) const;
+	bool TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) const;
+	bool TestHLineMove(vec2 Pos, vec2 OldPos, float Length, bool Vanilla = false) const;
 };
 
 #endif

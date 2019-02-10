@@ -78,7 +78,7 @@ void CCharacterCore::Reset()
 	m_Solo = 0;
 }
 
-void CCharacterCore::Tick(bool UseInput)
+void CCharacterCore::Tick(bool UseInput, bool Vanilla)
 {
 	float PhysSize = 28.0f;
 	int StartHit = 0;
@@ -86,7 +86,8 @@ void CCharacterCore::Tick(bool UseInput)
 
 	// get ground state
 	bool Grounded = false;
-	if(m_pCollision->TestHLineMove(m_Pos + vec2(0, PhysSize / 2 + 5), m_Pos + vec2(0, PhysSize / 2),PhysSize))
+	// TODO DDRace build vanilla version
+	if(m_pCollision->TestHLineMove(m_Pos + vec2(0, PhysSize / 2 + 5), m_Pos + vec2(0, PhysSize / 2), PhysSize, Vanilla))
 		Grounded = true;
 
 	vec2 TargetDirection = normalize(vec2(m_Input.m_TargetX, m_Input.m_TargetY));
@@ -111,7 +112,7 @@ void CCharacterCore::Tick(bool UseInput)
 		// handle jump
 		if(m_Input.m_Jump)
 		{
-			if(!(m_Jumped&1) && m_FreezeTick == 0)
+			if(!(m_Jumped&1) && (m_FreezeTick == 0 || Vanilla))
 			{
 				if(Grounded)
 				{
@@ -133,7 +134,7 @@ void CCharacterCore::Tick(bool UseInput)
 		// handle hook
 		if(m_Input.m_Hook)
 		{
-			if(m_HookState == HOOK_IDLE && m_FreezeTick == 0)
+			if(m_HookState == HOOK_IDLE && (m_FreezeTick == 0 || Vanilla))
 			{
 				m_HookState = HOOK_FLYING;
 				m_HookPos = m_Pos+TargetDirection*PhysSize*1.5f;
@@ -155,12 +156,12 @@ void CCharacterCore::Tick(bool UseInput)
 	}
 
 	// add the speed modification according to players wanted direction
-	if(m_Direction == 0 || m_FreezeTick != 0)
-		m_Vel.x *= Friction;
-	else if(m_Direction < 0)
+	if(m_Direction < 0 && (m_FreezeTick == 0 || Vanilla))
 		m_Vel.x = SaturatedAdd(-MaxSpeed, MaxSpeed, m_Vel.x, -Accel);
-	else if(m_Direction > 0)
+	if(m_Direction > 0 && (m_FreezeTick == 0 || Vanilla))
 		m_Vel.x = SaturatedAdd(-MaxSpeed, MaxSpeed, m_Vel.x, Accel);
+	if(m_Direction == 0 || (m_FreezeTick != 0 && !Vanilla))
+		m_Vel.x *= Friction;
 
 	// handle jumping
 	// 1 bit = to keep track if a jump has been made on this input
@@ -199,7 +200,7 @@ void CCharacterCore::Tick(bool UseInput)
 		bool GoingToRetract = false;
 		// dirty fix part two
 		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0, CCollision::COLFLAG_SOLID_HOOK);
-		if(StartHit)
+		if(StartHit && !Vanilla)
 		{
 			NewPos = m_HookPos;
 			if(StartHit&CCollision::COLFLAG_NOHOOK)
@@ -259,7 +260,7 @@ void CCharacterCore::Tick(bool UseInput)
 
 	if(m_HookState == HOOK_GRABBED)
 	{
-		if(m_FreezeTick == 0)
+		if(m_FreezeTick == 0 || Vanilla)
 		{
 			if(m_HookedPlayer != -1)
 			{
@@ -305,13 +306,15 @@ void CCharacterCore::Tick(bool UseInput)
 		}
 
 		// release hook (max hook time is 1.2)
-		if(m_Endless)
+		if(m_Endless && !Vanilla)
 			m_HookTick = 0;
 		else
 			m_HookTick++;
 
-		if(m_FreezeTick != 0 || (m_HookedPlayer != -1 && (m_HookTick > SERVER_TICK_SPEED+SERVER_TICK_SPEED/5 || !m_pWorld->m_apCharacters[m_HookedPlayer]
-									 || m_Solo || m_pWorld->m_apCharacters[m_HookedPlayer]->m_Solo)))
+		if((m_FreezeTick != 0 && !Vanilla) || (m_HookedPlayer != -1 && (
+				m_HookTick > SERVER_TICK_SPEED+SERVER_TICK_SPEED/5
+				|| !m_pWorld->m_apCharacters[m_HookedPlayer]
+				|| m_Solo || m_pWorld->m_apCharacters[m_HookedPlayer]->m_Solo)))
 		{
 			m_HookedPlayer = -1;
 			m_HookState = HOOK_RETRACTED;
@@ -319,7 +322,7 @@ void CCharacterCore::Tick(bool UseInput)
 		}
 
 		// for disappearing walls
-		if(m_HookedPlayer == -1 && !(m_pCollision->GetCollisionAt(m_HookPos)&CCollision::COLFLAG_SOLID_HOOK))
+		if(m_HookedPlayer == -1 && !Vanilla && !(m_pCollision->GetCollisionAt(m_HookPos)&CCollision::COLFLAG_SOLID_HOOK))
 		{
 			m_HookState = HOOK_RETRACTED;
 			m_HookPos = m_Pos;
@@ -383,7 +386,7 @@ void CCharacterCore::Tick(bool UseInput)
 		m_FreezeTick--;
 }
 
-int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
+int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers, bool Vanilla)
 {
 	if(!m_pWorld)
 		return 0;
@@ -397,14 +400,17 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
 
 	vec2 NewPos = m_Pos;
 
-	int Size = m_pCollision->MoveBox(&NewPos, &m_Vel, pOutTriggers, vec2(28.0f, 28.0f), 0);
+	int Size = m_pCollision->MoveBox(&NewPos, &m_Vel, pOutTriggers, vec2(28.0f, 28.0f), 0, Vanilla);
 	bool Teleport = false;
-	for(int i = 0; i < Size; i++)
+	if (!Vanilla)
 	{
-		HandleTriggers(pOutTriggers[i]);
-		// dirty fix for dirty code
-		if(pOutTriggers[i].m_TeleFlags == CCollision::TRIGGERFLAG_TELEPORT)
-			Teleport = true;
+		for(int i = 0; i < Size; i++)
+		{
+			HandleTriggers(pOutTriggers[i]);
+			// dirty fix for dirty code
+			if(pOutTriggers[i].m_TeleFlags == CCollision::TRIGGERFLAG_TELEPORT)
+				Teleport = true;
+		}
 	}
 
 	m_Vel.x = m_Vel.x*(1.0f/RampValue);
@@ -444,10 +450,10 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers)
 	return Size;
 }
 
-void CCharacterCore::Move()
+void CCharacterCore::Move(bool Vanilla)
 {
 	CCollision::CTriggers aTriggers[4 * (int)((MAX_SPEED + 15) / 16) + 2];
-	Move(aTriggers);
+	Move(aTriggers, Vanilla);
 }
 
 void CCharacterCore::HandleTriggers(CCollision::CTriggers Triggers)

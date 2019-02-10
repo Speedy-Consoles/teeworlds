@@ -199,9 +199,9 @@ public:
 
 	void Init(CWorldCore *pWorld, CCollision *pCollision);
 	void Reset();
-	void Tick(bool UseInput);
-	int Move(CCollision::CTriggers *pOutTriggers);
-	void Move();
+	void Tick(bool UseInput, bool Vanilla);
+	int Move(CCollision::CTriggers *pOutTriggers, bool Vanilla);
+	void Move(bool Vanilla);
 	void HandleTriggers(CCollision::CTriggers Triggers);
 
 	void Freeze();

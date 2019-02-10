@@ -20,6 +20,8 @@ void CLayers::Init(class IKernel *pKernel, IMap *pMap)
 	m_pMap->GetType(MAPITEMTYPE_GROUP, &m_GroupsStart, &m_GroupsNum);
 	m_pMap->GetType(MAPITEMTYPE_LAYER, &m_LayersStart, &m_LayersNum);
 
+	m_pVanillaLayer = 0;
+
 	for(int g = 0; g < NumGroups(); g++)
 	{
 		CMapItemGroup *pGroup = GetGroup(g);
@@ -74,6 +76,11 @@ CMapItemLayerTilemap *CLayers::GameLayer(int GameLayerType) const
 	if (!pTileMap && GameLayerType == GAMELAYERTYPE_COLLISION)
 		pTileMap = m_pVanillaLayer;
 	return pTileMap;
+}
+
+CMapItemLayerTilemap *CLayers::VanillaLayer() const
+{
+	return m_pVanillaLayer;
 }
 
 CMapItemGroup *CLayers::GetGroup(int Index) const

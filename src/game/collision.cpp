@@ -20,6 +20,9 @@ CCollision::CCollision()
 		m_aWidth[t] = 0;
 		m_aHeight[t] = 0;
 	}
+	m_pVanillaTiles = 0;
+	m_VanillaWidth = 0;
+	m_VanillaHeight = 0;
 	m_pLayers = 0;
 	m_NumCheckpoints = 0;
 }
@@ -44,6 +47,14 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 			m_aHeight[t] = 0;
 			m_apTiles[t] = 0;
 		}
+	}
+
+	CMapItemLayerTilemap *pVanillaTileMap = m_pLayers->VanillaLayer();
+	if (pVanillaTileMap)
+	{
+		m_pVanillaTiles = static_cast<CTile *>(m_pLayers->Map()->GetData(pVanillaTileMap->m_Data));
+		m_VanillaWidth = pVanillaTileMap->m_Width;
+		m_VanillaHeight = pVanillaTileMap->m_Height;
 	}
 
 	for(int i = 0; i < m_aWidth[GAMELAYERTYPE_COLLISION]*m_aHeight[GAMELAYERTYPE_COLLISION]; i++)
@@ -166,6 +177,10 @@ void CCollision::Init(class CCollision *pOther, bool *pSwitchStates)
 		m_apTiles[t] = pOther->m_apTiles[t];
 	}
 
+	m_pVanillaTiles = pOther->m_pVanillaTiles;
+	m_VanillaWidth = pOther->m_VanillaWidth;
+	m_VanillaHeight = pOther->m_VanillaHeight;
+
 	for(int i = 0; i < m_aWidth[GAMELAYERTYPE_TELE]*m_aHeight[GAMELAYERTYPE_TELE]; i++)
 		if(m_apTiles[GAMELAYERTYPE_TELE][i].m_Index > 0)
 			if(!(m_apTiles[GAMELAYERTYPE_TELE][i].m_Flags&TELEFLAG_IN))
@@ -201,6 +216,17 @@ int CCollision::TilePosToIndex(int x, int y, int Layer) const
 	return Ny * m_aWidth[Layer] + Nx;
 }
 
+int CCollision::VanillaTilePosToIndex(int x, int y) const
+{
+	if(!m_pVanillaTiles)
+		return -1;
+
+	int Nx = clamp(x, 0, m_VanillaWidth-1);
+	int Ny = clamp(y, 0, m_VanillaHeight-1);
+
+	return Ny * m_VanillaWidth + Nx;
+}
+
 int CCollision::PosToIndex(float x, float y, int Layer) const
 {
 	ivec2 TilePos = PosToTilePos(x, y);
@@ -226,8 +252,9 @@ int CCollision::GetDirFlags(ivec2 Dir) const
 int CCollision::GetCollisionAt(float x, float y) const
 {
 	int Index = PosToIndex(x, y, GAMELAYERTYPE_COLLISION);
+	int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Flags;
+	bool Invert = Flags&TILEFLAG_INVERT_SWITCH;
 	int SwitchGroup = GetSwitchGroup(Index, GAMELAYERTYPE_COLLISION);
-	bool Invert = m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Flags&TILEFLAG_INVERT_SWITCH;
 	bool Switch;
 	if(SwitchGroup != -1)
 		Switch = m_pSwitchStates[SwitchGroup];
@@ -240,26 +267,43 @@ int CCollision::GetCollisionAt(float x, float y) const
 		return 0;
 }
 
-int CCollision::GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask) const
+int CCollision::GetCollisionMove(float x, float y, float OldX, float OldY, int DirFlagsMask, bool Vanilla) const
 {
 	ivec2 Pos = PosToTilePos(x, y);
 	ivec2 OldPos = PosToTilePos(OldX, OldY);
 	int DirFlags = GetDirFlags(Pos - OldPos)&DirFlagsMask;
 
-	int Index = TilePosToIndex(Pos.x, Pos.y, GAMELAYERTYPE_COLLISION);
-	int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Flags;
-	bool Invert = Flags&TILEFLAG_INVERT_SWITCH;
-	int SwitchGroup = GetSwitchGroup(Index, GAMELAYERTYPE_COLLISION);
-	bool Switch;
-	if(SwitchGroup != -1)
-		Switch = m_pSwitchStates[SwitchGroup];
+	if (Vanilla)
+	{
+		int Index = VanillaTilePosToIndex(Pos.x, Pos.y);
+		if(m_pVanillaTiles[Index].m_Index <= 128)
+			return m_pVanillaTiles[Index].m_Index;
+		else
+			return 0;
+	}
 	else
-		Switch = Invert;
-	
-	if(Switch == Invert && m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index <= 128 && (Flags&DirFlags) != DirFlags)
-		return m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index;
-	else
-		return 0;
+	{
+		int Index = TilePosToIndex(Pos.x, Pos.y, GAMELAYERTYPE_COLLISION);
+		int Flags = m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Flags;
+		bool Invert = Flags&TILEFLAG_INVERT_SWITCH;
+		int SwitchGroup = GetSwitchGroup(Index, GAMELAYERTYPE_COLLISION);
+		bool Switch;
+		if(SwitchGroup != -1)
+			Switch = m_pSwitchStates[SwitchGroup];
+		else
+			Switch = Invert;
+
+		int VanillaDirFlags = DIRFLAG_UP|DIRFLAG_DOWN|DIRFLAG_RIGHT|DIRFLAG_LEFT;
+		if(Switch == Invert
+				&& m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index <= 128
+				&& (
+					(!Vanilla && (Flags&DirFlags) != DirFlags)
+					|| (Vanilla && (Flags&VanillaDirFlags) == VanillaDirFlags)
+				))
+			return m_apTiles[GAMELAYERTYPE_COLLISION][Index].m_Index;
+		else
+			return 0;
+	}
 }
 
 // TODO: rewrite this smarter!
@@ -354,31 +398,31 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size) const
 	return false;
 }
 
-bool CCollision::TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size) const
+bool CCollision::TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) const
 {
 	Size *= 0.5f;
-	if(GetCollisionMove(Pos.x-Size.x, Pos.y-Size.y, OldPos.x-Size.x, OldPos.y-Size.y, DIRFLAG_UP|DIRFLAG_LEFT))
+	if(GetCollisionMove(Pos.x-Size.x, Pos.y-Size.y, OldPos.x-Size.x, OldPos.y-Size.y, DIRFLAG_UP|DIRFLAG_LEFT, Vanilla))
 		return true;
-	if(GetCollisionMove(Pos.x+Size.x, Pos.y-Size.y, OldPos.x+Size.x, OldPos.y-Size.y, DIRFLAG_UP|DIRFLAG_RIGHT))
+	if(GetCollisionMove(Pos.x+Size.x, Pos.y-Size.y, OldPos.x+Size.x, OldPos.y-Size.y, DIRFLAG_UP|DIRFLAG_RIGHT, Vanilla))
 		return true;
-	if(GetCollisionMove(Pos.x-Size.x, Pos.y+Size.y, OldPos.x-Size.x, OldPos.y+Size.y, DIRFLAG_DOWN|DIRFLAG_LEFT))
+	if(GetCollisionMove(Pos.x-Size.x, Pos.y+Size.y, OldPos.x-Size.x, OldPos.y+Size.y, DIRFLAG_DOWN|DIRFLAG_LEFT, Vanilla))
 		return true;
-	if(GetCollisionMove(Pos.x+Size.x, Pos.y+Size.y, OldPos.x+Size.x, OldPos.y+Size.y, DIRFLAG_DOWN|DIRFLAG_RIGHT))
+	if(GetCollisionMove(Pos.x+Size.x, Pos.y+Size.y, OldPos.x+Size.x, OldPos.y+Size.y, DIRFLAG_DOWN|DIRFLAG_RIGHT, Vanilla))
 		return true;
 	return false;
 }
 
-bool CCollision::TestHLineMove(vec2 Pos, vec2 OldPos, float Length) const
+bool CCollision::TestHLineMove(vec2 Pos, vec2 OldPos, float Length, bool Vanilla) const
 {
 	Length *= 0.5f;
-	if(GetCollisionMove(Pos.x-Length, Pos.y, OldPos.x-Length, OldPos.y, DIRFLAG_UP|DIRFLAG_DOWN))
+	if(GetCollisionMove(Pos.x-Length, Pos.y, OldPos.x-Length, OldPos.y, DIRFLAG_UP|DIRFLAG_DOWN, Vanilla))
 		return true;
-	if(GetCollisionMove(Pos.x+Length, Pos.y, OldPos.x+Length, OldPos.y, DIRFLAG_UP|DIRFLAG_DOWN))
+	if(GetCollisionMove(Pos.x+Length, Pos.y, OldPos.x+Length, OldPos.y, DIRFLAG_UP|DIRFLAG_DOWN, Vanilla))
 		return true;
 	return false;
 }
 
-int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity) const
+int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTriggers, vec2 Size, float Elasticity, bool Vanilla) const
 {
 	// do the move
 	vec2 Pos = *pInoutPos;
@@ -403,18 +447,18 @@ int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTrigger
 
 			vec2 NewPos = Pos + Vel*Fraction; // TODO: this row is not nice
 
-			if(TestBoxMove(NewPos, Pos, Size))
+			if(TestBoxMove(NewPos, Pos, Size, Vanilla))
 			{
 				int Hits = 0;
 
-				if(TestBoxMove(vec2(Pos.x, NewPos.y), Pos, Size))
+				if(TestBoxMove(vec2(Pos.x, NewPos.y), Pos, Size, Vanilla))
 				{
 					NewPos.y = Pos.y;
 					Vel.y *= -Elasticity;
 					Hits++;
 				}
 
-				if(TestBoxMove(vec2(NewPos.x, Pos.y), Pos, Size))
+				if(TestBoxMove(vec2(NewPos.x, Pos.y), Pos, Size, Vanilla))
 				{
 					NewPos.x = Pos.x;
 					Vel.x *= -Elasticity;
@@ -434,76 +478,79 @@ int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTrigger
 
 			Pos = NewPos;
 
-			// speedups
-			bool Speedup = false;
-			ivec2 iPos = PosToTilePos(Pos.x, Pos.y);
-
-			int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_HSPEEDUP);
-			if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Index > 0)
+			if (!Vanilla)
 			{
-				float Accel = m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Index * Fraction;
-				Speedup = true;
-				if(m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Flags&SPEEDUPFLAG_FLIP)
-					SpeedupVel.x -= Accel;
-				else
-					SpeedupVel.x += Accel;
-			}
+				// speedups
+				bool Speedup = false;
+				ivec2 iPos = PosToTilePos(Pos.x, Pos.y);
 
-			PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_VSPEEDUP);
-			if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Index > 0)
-			{
-				float Accel = m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Index * Fraction;
-				Speedup = true;
-				if(m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Flags&SPEEDUPFLAG_FLIP)
-					SpeedupVel.y -= Accel;
-				else
-					SpeedupVel.y += Accel;
-			}
-
-			if(pOutTriggers && (iPos != OldPos || First))
-			{
-				pOutTriggers[NumTiles] = CTriggers();
-
-				if(Speedup && iPos != OldPos)
-					pOutTriggers[NumTiles].m_SpeedupFlags |= TRIGGERFLAG_SPEEDUP;
-				HandleTriggerTiles(iPos.x, iPos.y, pOutTriggers + NumTiles);
-
-				// handle teleporters
-				int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_TELE);
-				int TeleFlags = PosIndex >= 0 ? m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Flags : 0;
-
-				if(TeleFlags&TELEFLAG_IN)
+				int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_HSPEEDUP);
+				if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Index > 0)
 				{
-					pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_TELEPORT;
-					pOutTriggers[NumTiles].m_TeleInPos = Pos;
+					float Accel = m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Index * Fraction;
+					Speedup = true;
+					if(m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Flags&SPEEDUPFLAG_FLIP)
+						SpeedupVel.x -= Accel;
+					else
+						SpeedupVel.x += Accel;
+				}
 
-					Pos = m_aTeleTargets[m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Index];
+				PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_VSPEEDUP);
+				if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Index > 0)
+				{
+					float Accel = m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Index * Fraction;
+					Speedup = true;
+					if(m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Flags&SPEEDUPFLAG_FLIP)
+						SpeedupVel.y -= Accel;
+					else
+						SpeedupVel.y += Accel;
+				}
 
-					pOutTriggers[NumTiles].m_TeleOutPos = Pos;
-					if(TeleFlags&TELEFLAG_RESET_VEL)
+				if(pOutTriggers && (iPos != OldPos || First))
+				{
+					pOutTriggers[NumTiles] = CTriggers();
+
+					if(Speedup && iPos != OldPos)
+						pOutTriggers[NumTiles].m_SpeedupFlags |= TRIGGERFLAG_SPEEDUP;
+					HandleTriggerTiles(iPos.x, iPos.y, pOutTriggers + NumTiles);
+
+					// handle teleporters
+					int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_TELE);
+					int TeleFlags = PosIndex >= 0 ? m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Flags : 0;
+
+					if(TeleFlags&TELEFLAG_IN)
 					{
-						Vel = vec2(0.0f, 0.0f);
-						pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_STOP_NINJA;
-					}
-					if(TeleFlags&TELEFLAG_CUT_OTHER)
-						pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_CUT_OTHER;
-					if(TeleFlags&TELEFLAG_CUT_OWN)
-						pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_CUT_OWN;
+						pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_TELEPORT;
+						pOutTriggers[NumTiles].m_TeleInPos = Pos;
 
+						Pos = m_aTeleTargets[m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Index];
+
+						pOutTriggers[NumTiles].m_TeleOutPos = Pos;
+						if(TeleFlags&TELEFLAG_RESET_VEL)
+						{
+							Vel = vec2(0.0f, 0.0f);
+							pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_STOP_NINJA;
+						}
+						if(TeleFlags&TELEFLAG_CUT_OTHER)
+							pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_CUT_OTHER;
+						if(TeleFlags&TELEFLAG_CUT_OWN)
+							pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_CUT_OWN;
+
+						NumTiles++;
+
+						ivec2 iPos = PosToTilePos(Pos.x, Pos.y);
+						OldPos = iPos;
+
+						pOutTriggers[NumTiles] = CTriggers();
+						HandleTriggerTiles(iPos.x, iPos.y, pOutTriggers + NumTiles);
+					}
 					NumTiles++;
 
-					ivec2 iPos = PosToTilePos(Pos.x, Pos.y);
 					OldPos = iPos;
-
-					pOutTriggers[NumTiles] = CTriggers();
-					HandleTriggerTiles(iPos.x, iPos.y, pOutTriggers + NumTiles);
 				}
-				NumTiles++;
 
-				OldPos = iPos;
+				First = false;
 			}
-
-			First = false;
 		}
 	}
 

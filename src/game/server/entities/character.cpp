@@ -125,7 +125,7 @@ void CCharacter::SetWeapon(int W)
 bool CCharacter::IsGrounded()
 {
 	// TODO DDRace why?
-	if(Collision()->TestHLineMove(m_Pos + vec2(0, GetProximityRadius() / 2 + 5), m_Pos + vec2(0, GetProximityRadius() / 2), GetProximityRadius()))
+	if(Collision()->TestHLineMove(m_Pos + vec2(0, GetProximityRadius() / 2 + 5), m_Pos + vec2(0, GetProximityRadius() / 2), GetProximityRadius()), false)
 		return true;
 	return false;
 }
@@ -546,7 +546,7 @@ void CCharacter::ResetInput()
 void CCharacter::Tick()
 {
 	m_Core.m_Input = m_Input;
-	m_Core.Tick(true);
+	m_Core.Tick(true, false);
 
 	// handle death-tiles and leaving gamelayer
 	if(Collision()->GetCollisionAt(m_Pos.x+GetProximityRadius()/3.f, m_Pos.y-GetProximityRadius()/3.f)&CCollision::COLFLAG_DEATH ||
@@ -564,12 +564,13 @@ void CCharacter::Tick()
 
 void CCharacter::TickDefered()
 {
+	// TODO DDRace we should have a separate reckoning core for ddrace clients
 	// advance the dummy
 	{
 		CWorldCore TempWorld;
 		m_ReckoningCore.Init(&TempWorld, Collision());
-		m_ReckoningCore.Tick(false);
-		m_ReckoningCore.Move();
+		m_ReckoningCore.Tick(false, true);
+		m_ReckoningCore.Move(true);
 		m_ReckoningCore.Quantize();
 	}
 
@@ -579,7 +580,7 @@ void CCharacter::TickDefered()
 	bool StuckBefore = Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
 
 	CCollision::CTriggers aTriggers[4 * (int)((MAX_SPEED + 15) / 16) + 2];
-	int Size = m_Core.Move(aTriggers);
+	int Size = m_Core.Move(aTriggers, false);
 	for(int i = 0; i < Size; i++)
 		HandleTriggers(aTriggers[i]);
 
