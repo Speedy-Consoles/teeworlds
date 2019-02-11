@@ -433,6 +433,9 @@ class NetFlag(NetIntAny):
 			self.mask = "%s_%s" % (flag.name, flag.values[0])
 			for i in flag.values[1:]:
 				self.mask += "|%s_%s" % (flag.name, i)
+
+			#DDRace
+			self.default = default
 		else:
 			self.mask = "0"
 	def emit_validate(self):

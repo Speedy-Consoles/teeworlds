@@ -9,8 +9,9 @@ ChatModes = Enum("CHAT", ["NONE", "ALL", "TEAM", "WHISPER"])
 PlayerFlags = Flags("PLAYERFLAG", ["ADMIN", "CHATTING", "SCOREBOARD", "READY", "DEAD", "WATCHING", "BOT"])
 GameFlags = Flags("GAMEFLAG", ["TEAMS", "FLAGS", "SURVIVAL"])
 GameStateFlags = Flags("GAMESTATEFLAG", ["WARMUP", "SUDDENDEATH", "ROUNDOVER", "GAMEOVER", "PAUSED", "STARTCOUNTDOWN"])
-CoreEventFlags = Flags("COREEVENTFLAG", ["GROUND_JUMP", "AIR_JUMP", "HOOK_ATTACH_PLAYER", "HOOK_ATTACH_GROUND", "HOOK_HIT_NOHOOK", "DDRACE_FREEZE", "DDRACE_SPEEDUP"])
-CoreFlags = Flags("COREFLAG", ["DDRACE_SOLO"])
+CoreEventFlags = Flags("COREEVENTFLAG", ["GROUND_JUMP", "AIR_JUMP", "HOOK_ATTACH_PLAYER", "HOOK_ATTACH_GROUND", "HOOK_HIT_NOHOOK"])
+DDRaceCoreEventFlags = Flags("COREEVENTFLAG", ["DDRACE_FREEZE", "DDRACE_SPEEDUP"])
+DDRaceCoreFlags = Flags("COREFLAG", ["DDRACE_SOLO"])
 
 GameMsgIDs = Enum("GAMEMSG", ["TEAM_SWAP", "SPEC_INVALIDID", "TEAM_SHUFFLE", "TEAM_BALANCE", "CTF_DROP", "CTF_RETURN",
 							
@@ -66,7 +67,8 @@ Flags = [
 	GameFlags,
 	GameStateFlags,
 	CoreEventFlags,
-	CoreFlags,
+	DDRaceCoreEventFlags,
+	DDRaceCoreFlags,
 ]
 
 Objects = [
@@ -169,7 +171,7 @@ Objects = [
 		NetIntAny("m_HookDy"),
 	], [
 		NetTick("m_FreezeTick", 0),
-		NetFlag("m_Flags", CoreFlags, 0),
+		NetFlag("m_Flags", DDRaceCoreFlags, 0),
 	]),
 
 	NetObject("Character:CharacterCore", [
@@ -181,6 +183,7 @@ Objects = [
 		NetTick("m_AttackTick"),
 		NetFlag("m_TriggeredEvents", CoreEventFlags),
 	], [
+		NetFlag("m_TriggeredDDRaceEvents", DDRaceCoreEventFlags, 0),
 		NetIntRange("m_WorldID", 0, 'NUM_WORLDS-1', 0),
 	], True),
 

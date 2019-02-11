@@ -75,6 +75,7 @@ void CCharacterCore::Reset()
 	m_FreezeTick = 0;
 	m_UnfreezeOnNextTick = false;
 	m_TriggeredEvents = 0;
+	m_TriggeredDDRaceEvents = 0;
 	m_Solo = 0;
 }
 
@@ -83,6 +84,7 @@ void CCharacterCore::Tick(bool UseInput, bool Vanilla)
 	float PhysSize = 28.0f;
 	int StartHit = 0;
 	m_TriggeredEvents = 0;
+	m_TriggeredDDRaceEvents = 0;
 
 	// get ground state
 	bool Grounded = false;
@@ -511,7 +513,7 @@ void CCharacterCore::HandleTriggers(CCollision::CTriggers Triggers)
 	}
 
 	if(Triggers.m_SpeedupFlags&CCollision::TRIGGERFLAG_SPEEDUP)
-		m_TriggeredEvents |= COREEVENTFLAG_DDRACE_SPEEDUP;
+		m_TriggeredDDRaceEvents |= COREEVENTFLAG_DDRACE_SPEEDUP;
 
 	if(Triggers.m_Endless == CCollision::PROPERTEE_ON)
 		m_Endless = true;
@@ -529,7 +531,7 @@ void CCharacterCore::Freeze()
 	if(m_FreezeTick >= 0)
 	{
 		if(m_FreezeTick == 0)
-			m_TriggeredEvents |= COREEVENTFLAG_DDRACE_FREEZE;
+			m_TriggeredDDRaceEvents |= COREEVENTFLAG_DDRACE_FREEZE;
 		m_FreezeTick = SERVER_TICK_SPEED * m_pWorld->m_DDRaceTuning.m_FreezeTime;
 	}
 }
@@ -543,7 +545,7 @@ void CCharacterCore::Unfreeze()
 void CCharacterCore::DeepFreeze()
 {
 	if(m_FreezeTick == 0)
-		m_TriggeredEvents |= COREEVENTFLAG_DDRACE_FREEZE;
+		m_TriggeredDDRaceEvents |= COREEVENTFLAG_DDRACE_FREEZE;
 	m_FreezeTick = -1;
 }
 

@@ -47,6 +47,7 @@ CCharacter::CCharacter(CGameWorld *pWorld)
 	m_Health = 0;
 	m_Armor = 0;
 	m_TriggeredEvents = 0;
+	m_TriggeredDDRaceEvents = 0;
 	m_Persistent = true;
 }
 
@@ -616,6 +617,7 @@ void CCharacter::TickDefered()
 	}
 	
 	m_TriggeredEvents |= m_Core.m_TriggeredEvents;
+	m_TriggeredDDRaceEvents |= m_Core.m_TriggeredDDRaceEvents;
 
 	if(m_pPlayer->GetTeam() == TEAM_SPECTATORS)
 	{
@@ -954,6 +956,7 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 	pCharacter->m_Health = 0;
 	pCharacter->m_Armor = 0;
 	pCharacter->m_TriggeredEvents = m_TriggeredEvents;
+	pCharacter->m_TriggeredDDRaceEvents = m_TriggeredDDRaceEvents;
 
 	pCharacter->m_Weapon = m_ActiveWeapon;
 	pCharacter->m_AttackTick = m_AttackTick;
@@ -996,4 +999,5 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 void CCharacter::PostSnap()
 {
 	m_TriggeredEvents = 0;
+	m_TriggeredDDRaceEvents = 0;
 }

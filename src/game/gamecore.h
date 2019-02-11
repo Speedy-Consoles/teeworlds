@@ -196,6 +196,7 @@ public:
 	CNetObj_PlayerInput m_Input;
 
 	int m_TriggeredEvents;
+	int m_TriggeredDDRaceEvents;
 
 	void Init(CWorldCore *pWorld, CCollision *pCollision);
 	void Reset();

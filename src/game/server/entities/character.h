@@ -131,6 +131,7 @@ private:
 	bool m_UnfreezeFire;
 
 	int m_TriggeredEvents;
+	int m_TriggeredDDRaceEvents;
 
 	// ninja
 	struct
