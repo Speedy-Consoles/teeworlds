@@ -49,6 +49,7 @@ void CEventHandler::Clear()
 {
 	m_NumEvents = 0;
 	m_CurrentOffset = 0;
+	m_CurrentDDRaceOffset = 0;
 }
 
 void CEventHandler::Snap(int SnappingClient, int WorldID)
