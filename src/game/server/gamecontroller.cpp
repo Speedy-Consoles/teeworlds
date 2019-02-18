@@ -643,7 +643,9 @@ void IGameController::StartMatch()
 	m_aTeamscore[TEAM_BLUE] = 0;
 
 	// start countdown if there're enough players, otherwise do warmup till there're
-	if(HasEnoughPlayers())
+	if(IsDDRace())
+		SetGameState(IGS_GAME_RUNNING);
+	else if(HasEnoughPlayers())
 		SetGameState(IGS_START_COUNTDOWN);
 	else
 		SetGameState(IGS_WARMUP_GAME, TIMER_INFINITE);
@@ -762,7 +764,7 @@ void IGameController::Tick()
 		if(m_GameStateTimer > 0)
 			--m_GameStateTimer;
 
-		if(m_GameStateTimer == 0)
+		if(IsDDRace() || m_GameStateTimer == 0)
 		{
 			// timer fires
 			switch(m_GameState)
@@ -807,7 +809,9 @@ void IGameController::Tick()
  			{
 			case IGS_WARMUP_USER:
 				// check if player ready mode was disabled and it waits that all players are ready -> end warmup
-				if(!g_Config.m_SvPlayerReadyMode && m_GameStateTimer == TIMER_INFINITE)
+				if(IsDDRace())
+					StartMatch();
+				else if(!g_Config.m_SvPlayerReadyMode && m_GameStateTimer == TIMER_INFINITE)
 					SetGameState(IGS_WARMUP_USER, 0);
 				else if(m_GameStateTimer == 3 * Server()->TickSpeed())
 					StartMatch();
