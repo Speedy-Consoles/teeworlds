@@ -4,6 +4,7 @@
 #define GAME_SERVER_GAMEWORLD_H
 
 #include <game/gamecore.h>
+#include <game/server/racetimer.h>
 #include "eventhandler.h"
 
 class CEntity;
@@ -27,11 +28,6 @@ public:
 		ENTTYPE_CHARACTER,
 		ENTTYPE_FLAG,
 		NUM_ENTTYPES,
-
-		RACESTATE_STARTING = 0,
-		RACESTATE_STARTED,
-		RACESTATE_FINISHED,
-		RACESTATE_CANCELED,
 		
 		TEAMMODE_OPEN = 0,
 		TEAMMODE_PRIVATE,
@@ -50,13 +46,14 @@ private:
 
 	class IServer *m_pServer;
 
-	int m_RaceState;
-	int m_RaceStartTick;
+	CRaceTimer m_RaceTimer;
+	bool m_Default;
 public:
 	class CGameContext *GameServer() { return m_pGameServer; }
 	class CCollision *Collision() { return &m_Collision; }
 	class CEventHandler *Events() { return &m_Events; }
 	class IServer *Server() { return m_pServer; }
+	CRaceTimer *RaceTimer() { return &m_RaceTimer; }
 	void SetDefault() { m_Default = true; }
 
 	bool m_ResetRequested;
@@ -67,14 +64,10 @@ public:
 	bool m_aDDRaceSwitchStates[255];
 	int m_aDDRaceSwitchTicks[255];
 	bool m_SwitchStateChanged;
-	bool m_Default;
 
 	void SetSwitchState(bool State, int GroupID, int Duration);
 
-	int RaceState() { return m_RaceState; }
-	void StartRace();
-	void OnPlayerDeath();
-	void OnFinish();
+	bool IsDefault() { return m_Default; }
 
 	CGameWorld();
 	~CGameWorld();

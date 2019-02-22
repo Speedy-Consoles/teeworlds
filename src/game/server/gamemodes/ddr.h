@@ -14,9 +14,10 @@ public:
 	virtual void Tick();
 	virtual bool IsDDRace() const { return true; }
 	virtual void OnCharacterSpawn(CCharacter *pChr);
+	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 
-	virtual void OnRaceStart(CGameWorld *pWorld);
-	virtual void OnRaceFinish(CGameWorld *pWorld, int MilliSecs);
-	virtual void OnRaceCancel(CGameWorld *pWorld);
+	virtual void OnRaceStart(CCharacter *pChr);
+	virtual void OnRaceFinish(CCharacter *pChr);
+	virtual void TryChangePlayerWorld(CPlayer *pPlayer, int TargetWorldID);
 };
 #endif

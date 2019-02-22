@@ -170,9 +170,9 @@ public:
 	*/
 	virtual bool OnEntity(int Index, int Flags, vec2 Pos, int SwitchGroup, bool InvertSwitch);
 
-	virtual void OnRaceStart(CGameWorld *pWorld) {}
-	virtual void OnRaceFinish(CGameWorld *pWorld, int MilliSecs) {}
-	virtual void OnRaceCancel(CGameWorld *pWorld) {}
+	virtual void OnRaceStart(CCharacter *pChr) {}
+	virtual void OnRaceFinish(CCharacter *pChr) {}
+	virtual void TryChangePlayerWorld(CPlayer *pPlayer, int TargetWorldID) {}
 
 	void OnPlayerConnect(class CPlayer *pPlayer);
 	void OnPlayerDisconnect(class CPlayer *pPlayer);

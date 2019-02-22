@@ -325,7 +325,8 @@ void CGameContext::SendChat(int ChatterClientID, int Mode, int To, const char *p
 	{
 		// send to the clients
 		Msg.m_TargetID = To;
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ChatterClientID);
+		if(ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ChatterClientID);
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, To);
 	}
 }
@@ -1083,38 +1084,24 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_LastKill = Server()->Tick();
 			pPlayer->KillCharacter(WEAPON_SELF);
 		}
-		else if (MsgID == NETMSGTYPE_CL_DDRACENEWRACETEAM && ClientWorldRunning(ClientID) && IsDDRace())
+		else if (MsgID == NETMSGTYPE_CL_DDRACENEWRACETEAM)
 		{
-			int WorldID = GetEmptyWorldID();
-			if(WorldID != -1)
+			int TargetWorldID = GetEmptyWorldID();
+			if(TargetWorldID != -1)
 			{
-				if((pPlayer->WorldID() != -1 && m_aWorlds[pPlayer->WorldID()].RaceState() != CGameWorld::RACESTATE_STARTING)
-						|| (pPlayer->GetCharacter() && pPlayer->GetCharacter()->RaceState() != CGameWorld::RACESTATE_STARTING))
-					pPlayer->KillCharacter();
-				m_aWorlds[WorldID].m_SoftResetRequested = true;
-				m_aWorlds[WorldID].m_Paused = false;
-				pPlayer->ChangeWorld(WorldID);
+				m_pController->TryChangePlayerWorld(pPlayer, TargetWorldID);
+				m_aWorlds[TargetWorldID].m_Paused = false;
 			}
 		}
-		else if (MsgID == NETMSGTYPE_CL_DDRACEJOINRACETEAM  && !m_pController->IsGamePaused() && IsDDRace())
+		else if (MsgID == NETMSGTYPE_CL_DDRACEJOINRACETEAM)
 		{
 			CNetMsg_Cl_DDRaceJoinRaceTeam *pMsg = (CNetMsg_Cl_DDRaceJoinRaceTeam *)pRawMsg;
-			if(m_apPlayers[pMsg->m_ClientID] && m_apPlayers[pMsg->m_ClientID]->WorldID() != -1
-					&& m_aWorlds[m_apPlayers[pMsg->m_ClientID]->WorldID()].RaceState() == CGameWorld::RACESTATE_STARTING)
-			{
-				if((pPlayer->WorldID() != -1 && m_aWorlds[pPlayer->WorldID()].RaceState() != CGameWorld::RACESTATE_STARTING)
-						|| (pPlayer->GetCharacter() && pPlayer->GetCharacter()->RaceState() != CGameWorld::RACESTATE_STARTING))
-					pPlayer->KillCharacter();
-				pPlayer->ChangeWorld(m_apPlayers[pMsg->m_ClientID]->WorldID());
-			}
+			CPlayer *pTargetPlayer = m_apPlayers[pMsg->m_ClientID];
+			if(pTargetPlayer)
+				m_pController->TryChangePlayerWorld(pPlayer, pTargetPlayer->WorldID());
 		}
-		else if (MsgID == NETMSGTYPE_CL_DDRACELEAVERACETEAM && !m_pController->IsGamePaused() && IsDDRace())
-		{
-			if((pPlayer->WorldID() != -1 && m_aWorlds[pPlayer->WorldID()].RaceState() != CGameWorld::RACESTATE_STARTING)
-					|| (pPlayer->GetCharacter() && pPlayer->GetCharacter()->RaceState() != CGameWorld::RACESTATE_STARTING))
-				pPlayer->KillCharacter();
-			pPlayer->ChangeWorld(DEFAULT_WORLDID);
-		}
+		else if (MsgID == NETMSGTYPE_CL_DDRACELEAVERACETEAM)
+			m_pController->TryChangePlayerWorld(pPlayer, DEFAULT_WORLDID);
 	}
 	else
 	{

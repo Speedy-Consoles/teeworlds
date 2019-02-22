@@ -235,7 +235,7 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
-	if(m_WorldID != -1 && GameServer()->GetWorld(m_WorldID)->m_Paused)
+	if(GameServer()->GetWorld(m_WorldID)->m_Paused)
 	{
 		m_PlayerFlags = NewInput->m_PlayerFlags;
 		return;

@@ -7,6 +7,7 @@
 
 #include <game/gamecore.h>
 #include <game/server/entity.h>
+#include <game/server/racetimer.h>
 
 
 class CCharacter : public CEntity
@@ -39,7 +40,7 @@ public:
 	void HandleNinja();
 	void HandleTriggers(CCollision::CTriggers Triggers);
 
-	int RaceState() { return m_RaceState; }
+	CRaceTimer *RaceTimer() { return &m_RaceTimer; }
 
 	void OnPredictedInput(CNetObj_PlayerInput *pNewInput);
 	void OnDirectInput(CNetObj_PlayerInput *pNewInput);
@@ -72,9 +73,6 @@ public:
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
 private:
-	void OnFinish();
-	void OnCheckpoint();
-
 	// player controlling this character
 	class CPlayer *m_pPlayer;
 
@@ -118,10 +116,9 @@ private:
 	int m_NumInputs;
 	int m_Jumped;
 
-	int m_RaceStartTick;
+	CRaceTimer m_RaceTimer;
 	int m_LastCheckpoint;
 	int m_LastCorrectCheckpoint;
-	int m_RaceState;
 
 	int m_Health;
 	int m_Armor;

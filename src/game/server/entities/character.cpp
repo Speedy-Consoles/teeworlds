@@ -49,6 +49,7 @@ CCharacter::CCharacter(CGameWorld *pWorld)
 	m_TriggeredEvents = 0;
 	m_TriggeredDDRaceEvents = 0;
 	m_Persistent = true;
+	m_RaceTimer.SetServer(Server());
 }
 
 void CCharacter::Reset()
@@ -67,10 +68,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_LastWeapon = WEAPON_HAMMER;
 	m_QueuedWeapon = -1;
 
-	m_RaceStartTick = -1;
 	m_LastCheckpoint = -1;
 	m_LastCorrectCheckpoint = -1;
-	m_RaceState = CGameWorld::RACESTATE_STARTING;
 
 	m_pPlayer = pPlayer;
 	m_Pos = Pos;
@@ -661,27 +660,23 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 	int Checkpoint = Triggers.m_Checkpoint;
 	if(Checkpoint == 0)
 	{
-		GameWorld()->StartRace();
-		m_RaceStartTick = Server()->Tick();
 		m_LastCheckpoint = -1;
 		m_LastCorrectCheckpoint = -1;
-		m_RaceState = CGameWorld::RACESTATE_STARTED;
+		GameServer()->m_pController->OnRaceStart(this);
 	}
-	else if(Checkpoint >= 0 && Checkpoint - 1 != m_LastCheckpoint && m_RaceStartTick >= 0)
+	else if(Checkpoint >= 0 && Checkpoint - 1 != m_LastCheckpoint && m_RaceTimer.State() == CRaceTimer::RACESTATE_STARTED)
 	{
 		m_LastCheckpoint = Checkpoint - 1;
 		if(Checkpoint - 2 == m_LastCorrectCheckpoint)
 		{
 			if(Checkpoint == Collision()->GetNumCheckpoints() + 1)
-			{
-				OnFinish();
-				m_LastCheckpoint = -1;
-				m_LastCorrectCheckpoint = -1;
-				m_RaceStartTick = -1;
-			}
+				GameServer()->m_pController->OnRaceFinish(this);
 			else
 			{
-				OnCheckpoint();
+				char aBuf[256];
+				str_format(aBuf, sizeof(aBuf), "You reached Checkpoint %d in %.2f seconds.", m_LastCheckpoint, m_RaceTimer.Time());
+				GameServer()->SendChat(-1, CHAT_WHISPER, m_pPlayer->GetCID(), aBuf);
+				// TODO DDRace store checkpoint time
 				m_LastCorrectCheckpoint++;
 			}
 		}
@@ -689,13 +684,13 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 		{
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "You missed checkpoint %d", m_LastCorrectCheckpoint + 1);
-			GameServer()->SendChat(-1, CHAT_NONE, m_pPlayer->GetCID(), aBuf);
+			GameServer()->SendChat(-1, CHAT_WHISPER, m_pPlayer->GetCID(), aBuf);
 		}
 		else if(Checkpoint - 1 < m_LastCorrectCheckpoint)
 		{
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "Wrong direction!");
-			GameServer()->SendChat(-1, CHAT_NONE, m_pPlayer->GetCID(), aBuf);
+			GameServer()->SendChat(-1, CHAT_WHISPER, m_pPlayer->GetCID(), aBuf);
 		}
 	}
 
@@ -705,40 +700,12 @@ void CCharacter::HandleTriggers(CCollision::CTriggers Triggers)
 		m_Nohit = false;
 }
 
-void CCharacter::OnFinish()
-{
-	m_RaceState = CGameWorld::RACESTATE_FINISHED;
-
-	int ms = (Server()->Tick() - m_RaceStartTick) * 1000 / (float) Server()->TickSpeed();
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "'%s' finished in %.2f seconds!", Server()->ClientName(m_pPlayer->GetCID()), ms / 1000.0);
-	GameServer()->SendChat(-1, CHAT_ALL, -1, aBuf);
-
-	//TODO only team times
-	if(m_pPlayer->m_Score > ms || m_pPlayer->m_Score == -1)
-		m_pPlayer->m_Score = ms;
-
-	GameWorld()->OnFinish();
-}
-
-void CCharacter::OnCheckpoint()
-{
-	float Time =  (Server()->Tick() - m_RaceStartTick) / (float) Server()->TickSpeed();
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "You reached Checkpoint %d in %.2f seconds.", m_LastCheckpoint, Time);
-	GameServer()->SendChat(-1, CHAT_NONE, m_pPlayer->GetCID(), aBuf);
-
-	// TODO store checkpoint time
-}
-
 void CCharacter::TickPaused()
 {
 	++m_AttackTick;
 	++m_Ninja.m_ActivationTick;
 	++m_ReckoningTick;
-	++m_RaceStartTick;
+	m_RaceTimer.TickPaused();
 	if(m_LastAction != -1)
 		++m_LastAction;
 	if(m_aWeapons[m_ActiveWeapon].m_AmmoRegenStart > -1)
@@ -793,8 +760,6 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameWorld()->RemoveEntity(this);
 	GameWorld()->m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	GameServer()->CreateDeath(Events(), m_Pos, m_pPlayer->GetCID(), SoloClientID());
-
-	GameWorld()->OnPlayerDeath();
 }
 
 bool CCharacter::TakeDamage(vec2 Force, vec2 Source, int Dmg, int From, int Weapon)
@@ -923,6 +888,9 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 	}
 	else
 	{
+		if (!WorldVisible(SnappingClient, WorldID))
+			return;
+
 		pVanillaCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character)));
 		if (!pVanillaCharacter)
 			return;
