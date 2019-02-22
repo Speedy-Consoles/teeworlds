@@ -63,6 +63,15 @@ bool CEntity::WorldVisible(int SnappingClient, int WorldID)
 	return SnappingClient == -1 || WorldID == GameServer()->m_apPlayers[SnappingClient]->WorldID();
 }
 
+bool CEntity::SoloVisible(int SnappingClient, bool Solo, int Owner)
+{
+	if(SnappingClient == -1 || Owner == -1)
+		return true;
+	if(!Solo && !GameServer()->IsPlayersCharacterSolo(SnappingClient))
+		return true;
+	return SnappingClient == Owner;
+}
+
 bool CEntity::GameLayerClipped(vec2 CheckPos)
 {
 	int rx = round_to_int(CheckPos.x) / 32;

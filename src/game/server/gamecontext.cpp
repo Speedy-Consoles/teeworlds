@@ -112,6 +112,12 @@ bool CGameContext::DoesPlayerHaveDDRaceClient(int ClientID)
 	return IsDDRace() && (ClientID == -1 || m_apPlayers[ClientID]->m_HasDDRaceClient);
 }
 
+bool CGameContext::IsPlayersCharacterSolo(int ClientID)
+{
+	CCharacter *pChr = m_apPlayers[ClientID]->GetCharacter();
+	return IsDDRace() && (ClientID != -1 && pChr && pChr->Solo());
+}
+
 void CGameContext::ResetPlayers(CGameWorld *pWorld)
 {
 	for(int i = 0; i < MAX_CLIENTS; i++)

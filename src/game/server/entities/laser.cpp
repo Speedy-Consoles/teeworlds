@@ -85,7 +85,7 @@ void CLaser::DoBounce()
 			if(m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE, -1, m_OnlySelf ? m_Owner : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_LASER_BOUNCE, m_OnlySelf ? m_Owner : -1);
 		}
 	}
 	else
@@ -132,13 +132,15 @@ void CLaser::Snap(int SnappingClient, int WorldID)
 		if(!pObj)
 			return;
 	}
-	else
+	else if(SoloVisible(SnappingClient, m_OnlySelf, m_Owner))
 	{
 		pVanillaObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
 		if(!pVanillaObj)
 			return;
 		pObj = &DummyObj;
 	}
+	else
+		return;
 
 	pObj->m_X = (int)m_Pos.x;
 	pObj->m_Y = (int)m_Pos.y;

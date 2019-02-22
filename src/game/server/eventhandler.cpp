@@ -55,18 +55,22 @@ void CEventHandler::Clear()
 void CEventHandler::Snap(int SnappingClient, int WorldID)
 {
 	bool HasDDRace = GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient);
-	bool SameWorld = SnappingClient == -1 || GameServer()->GetPlayerWorldID(SnappingClient);
+	bool SameWorld = GameServer()->GetPlayerWorldID(SnappingClient) == WorldID;
 
 	for(int i = 0; i < m_NumEvents; i++)
 	{
-		if (!HasDDRace && !SameWorld)
-			continue;
-
 		if(SnappingClient == -1 || CmaskIsSet(m_aClientMasks[i], SnappingClient))
 		{
 			if(!HasDDRace || m_aDDRaceSizes[i] == 0)
 			{
-				if (m_aSizes[i] > 0)
+				bool Opaque = true;
+				if(SnappingClient != -1 && m_aDDRaceSizes[i] > 0)
+				{
+					CNetEvent_DDRaceCommon *ddrev = (CNetEvent_DDRaceCommon *)&m_aDDRaceData[m_aDDRaceOffsets[i]];
+					Opaque = SameWorld && (ddrev->m_SoloClientID == -1 || ddrev->m_SoloClientID == SnappingClient);
+				}
+
+				if (Opaque && m_aSizes[i] > 0)
 				{
 					CNetEvent_Common *ev = (CNetEvent_Common *)&m_aData[m_aOffsets[i]];
 					if(SnappingClient == -1 || distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, vec2(ev->m_X, ev->m_Y)) < 1500.0f)
@@ -83,7 +87,6 @@ void CEventHandler::Snap(int SnappingClient, int WorldID)
 				ddrev->m_WorldID = WorldID;
 				if(SnappingClient == -1 || distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, vec2(ddrev->m_X, ddrev->m_Y)) < 1500.0f)
 				{
-					
 					void *d = GameServer()->Server()->SnapNewItem(m_aDDRaceTypes[i], i, m_aDDRaceSizes[i]);
 					if(d)
 						mem_copy(d, &m_aDDRaceData[m_aDDRaceOffsets[i]], m_aDDRaceSizes[i]);

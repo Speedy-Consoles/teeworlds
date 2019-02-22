@@ -95,6 +95,7 @@ public:
 	int GetPlayerWorldID(int ClientID);
 	bool IsDDRace();
 	bool DoesPlayerHaveDDRaceClient(int ClientID);
+	bool IsPlayersCharacterSolo(int ClientID);
 
 	void ResetPlayers(CGameWorld *pWorld);
 

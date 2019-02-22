@@ -117,7 +117,7 @@ void CProjectile::Tick()
 		if(pTargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos))
 		{
 			if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
-				GameServer()->CreateSound(Events(), CurPos, m_SoundImpact, -1, m_OnlySelf ? m_Owner : -1);
+				GameServer()->CreateSound(Events(), CurPos, m_SoundImpact, m_OnlySelf ? m_Owner : -1);
 
 			if(m_Explosive)
 				GameServer()->CreateExplosion(Events(), GameWorld(), CurPos, m_Owner, m_Weapon, m_Damage, m_OnlySelf);
@@ -168,7 +168,7 @@ void CProjectile::Snap(int SnappingClient, int WorldID)
 		if(pProj)
 			FillInfo(pProj, WorldID);
 	}
-	else if (!m_OnlySelf || m_Owner == SnappingClient)
+	else if (SoloVisible(SnappingClient, m_OnlySelf, m_Owner))
 	{
 		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
 		if(pProj)

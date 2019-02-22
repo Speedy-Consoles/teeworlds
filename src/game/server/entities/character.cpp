@@ -115,7 +115,7 @@ void CCharacter::SetWeapon(int W)
 	m_LastWeapon = m_ActiveWeapon;
 	m_QueuedWeapon = -1;
 	m_ActiveWeapon = W;
-	GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_SWITCH, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+	GameServer()->CreateSound(Events(), m_Pos, SOUND_WEAPON_SWITCH, SoloClientID());
 
 	if(m_ActiveWeapon < 0 || m_ActiveWeapon >= NUM_WEAPONS)
 		m_ActiveWeapon = 0;
@@ -341,7 +341,7 @@ void CCharacter::FireWeapon()
 		{
 			// reset objects Hit
 			m_NumObjectsHit = 0;
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_HAMMER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_HAMMER_FIRE, SoloClientID());
 
 			CCharacter *apEnts[MAX_CLIENTS];
 			int Hits = 0;
@@ -388,13 +388,13 @@ void CCharacter::FireWeapon()
 				(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GunLifetime),
 				g_pData->m_Weapons.m_Gun.m_pBase->m_Damage, false, 0, -1, WEAPON_GUN, 0, false, m_Nohit || m_Core.m_Solo);
 
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_GUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_GUN_FIRE, SoloClientID());
 		} break;
 
 		case WEAPON_SHOTGUN:
 		{
 			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), true, m_Nohit || m_Core.m_Solo);
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_SHOTGUN_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_SHOTGUN_FIRE, SoloClientID());
 		} break;
 
 		case WEAPON_GRENADE:
@@ -406,13 +406,13 @@ void CCharacter::FireWeapon()
 				(int)(Server()->TickSpeed()*GameServer()->Tuning()->m_GrenadeLifetime),
 				g_pData->m_Weapons.m_Grenade.m_pBase->m_Damage, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, 0, false, m_Nohit || m_Core.m_Solo);
 
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_GRENADE_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_GRENADE_FIRE, SoloClientID());
 		} break;
 
 		case WEAPON_LASER:
 		{
 			new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), false, m_Nohit || m_Core.m_Solo);
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_LASER_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_LASER_FIRE, SoloClientID());
 		} break;
 
 		case WEAPON_NINJA:
@@ -424,7 +424,7 @@ void CCharacter::FireWeapon()
 			m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
 			m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-			GameServer()->CreateSound(Events(), m_Pos, SOUND_NINJA_FIRE, -1, m_Core.m_Solo ? m_pPlayer->GetCID() : -1);
+			GameServer()->CreateSound(Events(), m_Pos, SOUND_NINJA_FIRE, SoloClientID());
 		} break;
 
 	}
@@ -886,16 +886,15 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 		if (!pCharacter)
 			return;
 	}
-	else
+	else if(SoloVisible(SnappingClient, Solo(), m_pPlayer->GetCID()) && WorldVisible(SnappingClient, WorldID))
 	{
-		if (!WorldVisible(SnappingClient, WorldID))
-			return;
-
 		pVanillaCharacter = static_cast<CNetObj_Character *>(Server()->SnapNewItem(NETOBJTYPE_CHARACTER, m_pPlayer->GetCID(), sizeof(CNetObj_Character)));
 		if (!pVanillaCharacter)
 			return;
 		pCharacter = &TmpCharacter;
 	}
+	else
+		return;
 
 	// write down the m_Core
 	if(!m_ReckoningTick || GameWorld()->m_Paused)

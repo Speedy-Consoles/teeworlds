@@ -1378,6 +1378,15 @@ void CGameClient::OnPredict()
 		if(!m_Snap.m_aCharacters[i].m_Active)
 			continue;
 
+		if(m_Snap.m_aCharacters[i].m_Cur.m_WorldID != m_Snap.m_pLocalCharacter->m_WorldID)
+			continue;
+
+		if(m_Snap.m_aCharacters[i].m_Cur.m_Flags&COREFLAG_DDRACE_SOLO && i != m_LocalClientID)
+			continue;
+
+		if(m_Snap.m_aCharacters[m_LocalClientID].m_Cur.m_Flags&COREFLAG_DDRACE_SOLO && i != m_LocalClientID)
+			continue;
+
 		m_aClients[i].m_Predicted.Init(&World, GetDDRTeamCollision(m_Snap.m_pLocalCharacter->m_WorldID));
 		World.m_apCharacters[i] = &m_aClients[i].m_Predicted;
 		m_aClients[i].m_Predicted.Read(&m_Snap.m_aCharacters[i].m_Cur);
