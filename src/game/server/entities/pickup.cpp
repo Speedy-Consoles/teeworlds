@@ -169,7 +169,7 @@ void CPickup::Snap(int SnappingClient, int WorldID)
 	if(m_SpawnTick != -1 || NetworkClipped(SnappingClient) || !Active())
 		return;
 
-	CNetObj_Pickup *pVanillaP = nullptr;
+	CNetObj_Pickup *pVanillaP = 0;
 	CNetObj_DDRacePickup *pP;
 	CNetObj_DDRacePickup DummyP;
 	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))

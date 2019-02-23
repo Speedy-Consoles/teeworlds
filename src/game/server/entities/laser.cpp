@@ -123,7 +123,7 @@ void CLaser::Snap(int SnappingClient, int WorldID)
 	if(NetworkClipped(SnappingClient) && NetworkClipped(SnappingClient, m_From))
 		return;
 
-	CNetObj_Laser *pVanillaObj = nullptr;
+	CNetObj_Laser *pVanillaObj = 0;
 	CNetObj_DDRaceLaser *pObj;
 	CNetObj_DDRaceLaser DummyObj;
 	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))

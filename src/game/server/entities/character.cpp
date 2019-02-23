@@ -877,7 +877,7 @@ void CCharacter::Snap(int SnappingClient, int WorldID)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Character *pVanillaCharacter = nullptr;
+	CNetObj_Character *pVanillaCharacter = 0;
 	CNetObj_DDRaceCharacter TmpCharacter;
 	CNetObj_DDRaceCharacter *pCharacter;
 	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))

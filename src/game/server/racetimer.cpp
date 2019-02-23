@@ -4,7 +4,7 @@
 
 CRaceTimer::CRaceTimer()
 {
-	m_pServer = nullptr;
+	m_pServer = 0;
 	m_State = RACESTATE_STARTING;
 	m_StartTick = 0;
 	m_EndTick = 0;

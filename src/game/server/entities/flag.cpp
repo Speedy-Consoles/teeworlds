@@ -89,7 +89,7 @@ void CFlag::Snap(int SnappingClient, int WorldID)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Flag *pVanillaFlag = nullptr;
+	CNetObj_Flag *pVanillaFlag = 0;
 	CNetObj_DDRaceFlag *pFlag;
 	CNetObj_DDRaceFlag DummyFlag;
 	if(GameServer()->DoesPlayerHaveDDRaceClient(SnappingClient))
