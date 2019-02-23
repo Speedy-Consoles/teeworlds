@@ -542,10 +542,6 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 							pDDRTiles->m_Image = pDDRTilemapItem->m_Image;
 							pDDRTiles->m_Game = 1;
 
-							// load layer name
-							if(pDDRTilemapItem->m_Version >= 3)
-								IntsToStr(pDDRTilemapItem->m_aName, sizeof(pDDRTiles->m_aName)/sizeof(int), pDDRTiles->m_aName);
-
 							// get tile data
 							if(pDDRTilemapItem->m_Version > 3)
 								pDDRTiles->ExtractTiles((CTile *)pDDRData);

@@ -534,26 +534,14 @@ int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTrigger
 				bool Speedup = false;
 				ivec2 iPos = PosToTilePos(Pos.x, Pos.y);
 
-				int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_HSPEEDUP);
-				if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Index > 0)
+				int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_SPEEDUP);
+				if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Index > 0)
 				{
-					float Accel = m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Index * Fraction;
+					float Accel = m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Index * 0.05f * Fraction;
+					float Angle = m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Flags / 256.0f * 2.0f * pi;
 					Speedup = true;
-					if(m_apTiles[GAMELAYERTYPE_HSPEEDUP][PosIndex].m_Flags&SPEEDUPFLAG_FLIP)
-						SpeedupVel.x -= Accel;
-					else
-						SpeedupVel.x += Accel;
-				}
-
-				PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_VSPEEDUP);
-				if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Index > 0)
-				{
-					float Accel = m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Index * Fraction;
-					Speedup = true;
-					if(m_apTiles[GAMELAYERTYPE_VSPEEDUP][PosIndex].m_Flags&SPEEDUPFLAG_FLIP)
-						SpeedupVel.y -= Accel;
-					else
-						SpeedupVel.y += Accel;
+					SpeedupVel.x += cos(Angle) * Accel;
+					SpeedupVel.y += sin(Angle) * Accel;
 				}
 
 				if(pOutTriggers && (iPos != OldPos || First))
@@ -566,7 +554,9 @@ int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTrigger
 
 					// handle teleporters
 					int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_TELE);
-					int TeleFlags = PosIndex >= 0 ? m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Flags : 0;
+					int TeleFlags = 0;
+					if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Index > 0)
+						TeleFlags = m_apTiles[GAMELAYERTYPE_TELE][PosIndex].m_Flags;
 
 					if(TeleFlags&TELEFLAG_IN)
 					{

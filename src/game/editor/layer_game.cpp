@@ -8,8 +8,7 @@ const char *const s_apGameLayerTypeNames[] = {
 	"Freeze",
 	"Switches",
 	"Tele",
-	"H-Speedup",
-	"V-Speedup",
+	"Speedup",
 	"Race",
 	"Propertee",
 };

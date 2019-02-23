@@ -231,6 +231,16 @@ void CLayerTiles::Render(bool TileSetPicker)
 			for(int x = StartX; x < EndX; x++)
 			{
 				int c = x + y*m_Width;
+				if(m_GameLayerType == GAMELAYERTYPE_SPEEDUP && m_pTiles[c].m_Index > 0)
+				{
+					Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+					char aBuf[64];
+					str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Index);
+					m_pEditor->Graphics()->QuadsText(x*32, y*32, 15.0f, aBuf);
+					str_format(aBuf, sizeof(aBuf), "%i", m_pTiles[c].m_Flags);
+					m_pEditor->Graphics()->QuadsText(x*32, y*32+8, 15.0f, aBuf);
+					// TODO DDRace draw speedup arrow
+				}
 				if(m_pTiles[c].m_Index && m_pTiles[c].m_Reserved > 0)
 				{
 					if(m_pTiles[c].m_Flags&TILEFLAG_INVERT_SWITCH)
@@ -407,13 +417,12 @@ void CLayerTiles::BrushFlipX()
 
 	for(int y = 0; y < m_Height; y++)
 		for(int x = 0; x < m_Width; x++)
+		{
 			if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
 				m_pTiles[y*m_Width+x].m_Flags ^= m_pTiles[y*m_Width+x].m_Flags&TILEFLAG_ROTATE ? TILEFLAG_HFLIP : TILEFLAG_VFLIP;
-
-	if(m_GameLayerType == GAMELAYERTYPE_HSPEEDUP)
-		for(int y = 0; y < m_Height; y++)
-			for(int x = 0; x < m_Width; x++)
-				m_pTiles[y*m_Width+x].m_Flags ^= SPEEDUPFLAG_FLIP;
+			else if(m_GameLayerType == GAMELAYERTYPE_SPEEDUP)
+				m_pTiles[y*m_Width+x].m_Flags = 128 - m_pTiles[y*m_Width+x].m_Flags;
+		}
 }
 
 void CLayerTiles::BrushFlipY()
@@ -428,13 +437,12 @@ void CLayerTiles::BrushFlipY()
 
 	for(int y = 0; y < m_Height; y++)
 		for(int x = 0; x < m_Width; x++)
+		{
 			if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
 				m_pTiles[y*m_Width+x].m_Flags ^= m_pTiles[y*m_Width+x].m_Flags&TILEFLAG_ROTATE ? TILEFLAG_VFLIP : TILEFLAG_HFLIP;
-
-	if(m_GameLayerType == GAMELAYERTYPE_VSPEEDUP)
-		for(int y = 0; y < m_Height; y++)
-			for(int x = 0; x < m_Width; x++)
-				m_pTiles[y*m_Width+x].m_Flags ^= SPEEDUPFLAG_FLIP;
+			else if(m_GameLayerType == GAMELAYERTYPE_SPEEDUP)
+				m_pTiles[y*m_Width+x].m_Flags = -m_pTiles[y*m_Width+x].m_Flags;
+		}
 }
 
 void CLayerTiles::BrushRotate(float Amount)
@@ -453,12 +461,14 @@ void CLayerTiles::BrushRotate(float Amount)
 			for(int y = m_Height-1; y >= 0; --y, ++pDst)
 			{
 				*pDst = pTempData[y*m_Width+x];
-				if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION || m_GameLayerType == GAMELAYERTYPE_HSPEEDUP || m_GameLayerType == GAMELAYERTYPE_VSPEEDUP)
+				if(!m_Game || m_GameLayerType == GAMELAYERTYPE_COLLISION)
 				{
 					if(pDst->m_Flags&TILEFLAG_ROTATE)
 						pDst->m_Flags ^= (TILEFLAG_HFLIP|TILEFLAG_VFLIP);
 					pDst->m_Flags ^= TILEFLAG_ROTATE;
 				}
+				else if(m_GameLayerType == GAMELAYERTYPE_SPEEDUP)
+					pDst->m_Flags += 64;
 			}
 
 		int Temp = m_Width;
