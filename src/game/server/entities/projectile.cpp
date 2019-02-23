@@ -56,13 +56,18 @@ vec2 CProjectile::GetPos(float Time)
 			break;
 
 		case WEAPON_SHOTGUN:
-			Curvature = GameServer()->Tuning()->m_ShotgunCurvature;
-			Speed = GameServer()->Tuning()->m_ShotgunSpeed;
+			if(GameServer()->IsDDRace())
+				Speed = GameServer()->DDRaceTuning()->m_CrazyShotgunSpeed;
+			else
+			{
+				Curvature = GameServer()->Tuning()->m_ShotgunCurvature;
+				Speed = GameServer()->Tuning()->m_ShotgunSpeed;
+			}
 			break;
 
 		case WEAPON_GUN:
-			// TODO DDRace remove gun curvature in server AND client without tuning
-			Curvature = GameServer()->Tuning()->m_GunCurvature;
+			if(GameServer()->IsDDRace())
+				Curvature = GameServer()->Tuning()->m_GunCurvature;
 			Speed = GameServer()->Tuning()->m_GunSpeed;
 			break;
 	}

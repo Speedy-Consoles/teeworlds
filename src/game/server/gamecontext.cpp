@@ -526,17 +526,34 @@ void CGameContext::SendTuningParams(int ClientID)
 {
 	CheckPureTuning();
 
-	CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
-	int *pParams = (int *)&m_Tuning;
-	for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)
-		Msg.AddInt(pParams[i]);
-	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
-
 	if (DoesPlayerHaveDDRaceClient(ClientID))
 	{
-		CMsgPacker Msg(NETMSGTYPE_SV_DDRACETUNEPARAMS);
-		int *pParams = (int *)&m_DDRaceTuning;
+		CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
+		int *pParams = (int *)&m_Tuning;
+		for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)
+			Msg.AddInt(pParams[i]);
+		Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+
+		CMsgPacker Msg2(NETMSGTYPE_SV_DDRACETUNEPARAMS);
+		pParams = (int *)&m_DDRaceTuning;
 		for(unsigned i = 0; i < sizeof(m_DDRaceTuning)/sizeof(int); i++)
+			Msg2.AddInt(pParams[i]);
+		Server()->SendMsg(&Msg2, MSGFLAG_VITAL, ClientID);
+	}
+	else
+	{
+		int *pParams = (int *)&m_Tuning;
+		CTuningParams TmpParams;
+		if(IsDDRace())
+		{
+			TmpParams = m_Tuning;
+			TmpParams.m_ShotgunSpeed = m_DDRaceTuning.m_CrazyShotgunSpeed;
+			TmpParams.m_ShotgunCurvature = 0;
+			TmpParams.m_GunCurvature = 0;
+			pParams = (int *)&TmpParams;
+		}
+		CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
+		for(unsigned i = 0; i < sizeof(m_Tuning)/sizeof(int); i++)
 			Msg.AddInt(pParams[i]);
 		Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 	}
