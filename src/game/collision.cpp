@@ -123,12 +123,11 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 
 				switch(Index/16)
 				{
-					// TODO DDRace this is not right
 					case ROW_ONE_OPEN:
 						if(Flags&TILEFLAG_ROTATE)
 							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
 						else
-							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
 						break;
 					case ROW_TWO_OPEN:
 						if(Flags&TILEFLAG_ROTATE)
@@ -137,17 +136,22 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_DOWN|DIRFLAG_UP;
 						break;
 					case ROW_TWO_CORNER_OPEN:
-						m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
 						if(Flags&TILEFLAG_ROTATE)
+						{
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
 							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_UP : DIRFLAG_DOWN;
+						}
 						else
-							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
+						{
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_VFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_DOWN : DIRFLAG_UP;
+						}
 						break;
 					case ROW_THREE_OPEN:
 						if(Flags&TILEFLAG_ROTATE)
-							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_UP|DIRFLAG_DOWN|(Flags&TILEFLAG_VFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT);
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_UP|DIRFLAG_DOWN|(Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT);
 						else
-							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_RIGHT|DIRFLAG_LEFT|(Flags&TILEFLAG_VFLIP ? DIRFLAG_DOWN : DIRFLAG_UP);
+							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= DIRFLAG_RIGHT|DIRFLAG_LEFT|(Flags&TILEFLAG_HFLIP ? DIRFLAG_DOWN : DIRFLAG_UP);
 						break;
 				}
 			}
