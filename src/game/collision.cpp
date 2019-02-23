@@ -123,6 +123,7 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 
 				switch(Index/16)
 				{
+					// TODO DDRace this is not right
 					case ROW_ONE_OPEN:
 						if(Flags&TILEFLAG_ROTATE)
 							m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Flags |= Flags&TILEFLAG_HFLIP ? DIRFLAG_LEFT : DIRFLAG_RIGHT;
