@@ -89,32 +89,36 @@ void CCollision::Init(class CLayers *pLayers, bool *pSwitchStates)
 			if(Index > 128)
 				continue;		
 
-			switch(Index%16)
-			{
-			case TILE_DEATH:
+			if(Index == TILE_DEATH)
 				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_DEATH;
-				break;
-			case TILE_SOLID:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ;
-				break;
-			case TILE_NOHOOK:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ|COLFLAG_NOHOOK;
-				break;
-			case TILE_SEMISOLID_HOOK:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_PROJ;
-				break;
-			case TILE_SEMISOLID_PROJ:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK;
-				break;
-			case TILE_SEMISOLID_PROJ_NOHOOK:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_NOHOOK;
-				break;
-			case TILE_SEMISOLID_BOTH:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID;
-				break;
-			default:
-				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = 0;
+			else if(Index < 80)
+			{
+				switch(Index%16)
+				{
+				case TILE_SOLID:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ;
+					break;
+				case TILE_NOHOOK:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_SOLID_PROJ|COLFLAG_NOHOOK;
+					break;
+				case TILE_SEMISOLID_HOOK:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_PROJ;
+					break;
+				case TILE_SEMISOLID_PROJ:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK;
+					break;
+				case TILE_SEMISOLID_PROJ_NOHOOK:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID|COLFLAG_SOLID_HOOK|COLFLAG_NOHOOK;
+					break;
+				case TILE_SEMISOLID_BOTH:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = COLFLAG_SOLID;
+					break;
+				default:
+					m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = 0;
+				}
 			}
+			else
+				m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index = 0;
 
 			if(m_apTiles[GAMELAYERTYPE_COLLISION][i].m_Index&COLFLAG_SOLID)
 			{
@@ -569,6 +573,7 @@ int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTrigger
 						if(TeleFlags&TELEFLAG_RESET_VEL)
 						{
 							Vel = vec2(0.0f, 0.0f);
+							SpeedupVel = vec2(0.0f, 0.0f);
 							pOutTriggers[NumTiles].m_TeleFlags |= TRIGGERFLAG_STOP_NINJA;
 						}
 						if(TeleFlags&TELEFLAG_CUT_OTHER)
