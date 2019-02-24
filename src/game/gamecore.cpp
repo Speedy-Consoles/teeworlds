@@ -409,7 +409,7 @@ int CCharacterCore::Move(CCollision::CTriggers *pOutTriggers, bool Vanilla)
 		{
 			HandleTriggers(pOutTriggers[i]);
 			// dirty fix for dirty code
-			if(pOutTriggers[i].m_TeleFlags == CCollision::TRIGGERFLAG_TELEPORT)
+			if(pOutTriggers[i].m_TeleFlags&CCollision::TRIGGERFLAG_TELEPORT)
 				Teleport = true;
 		}
 	}
