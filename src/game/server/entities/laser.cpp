@@ -38,9 +38,13 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	m_Pos = At;
 	m_Energy = -1;
 	vec2 Force(0.f, 0.f);
+	int Weapon = WEAPON_LASER;
 	if(m_Pull)
+	{
 		Force = normalize(From-To)*10;
-	pHit->TakeDamage(Force, normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, WEAPON_LASER);
+		Weapon = WEAPON_SHOTGUN;
+	}
+	pHit->TakeDamage(Force, normalize(To-From), g_pData->m_Weapons.m_aId[WEAPON_LASER].m_Damage, m_Owner, Weapon);
 	return true;
 }
 
