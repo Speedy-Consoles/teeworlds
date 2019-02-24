@@ -50,7 +50,7 @@ void CItems::RenderProjectile(const CNetObj_DDRaceProjectile *pCurrent, int Item
 	}
 	else if(pCurrent->m_Type == WEAPON_GUN)
 	{
-		if(m_pClient->IsDDRace())
+		if(!m_pClient->IsDDRace())
 			Curvature = m_pClient->m_Tuning.m_GunCurvature;
 		Speed = m_pClient->m_Tuning.m_GunSpeed;
 	}

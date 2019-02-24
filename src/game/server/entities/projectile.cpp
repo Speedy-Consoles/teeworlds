@@ -66,7 +66,7 @@ vec2 CProjectile::GetPos(float Time)
 			break;
 
 		case WEAPON_GUN:
-			if(GameServer()->IsDDRace())
+			if(!GameServer()->IsDDRace())
 				Curvature = GameServer()->Tuning()->m_GunCurvature;
 			Speed = GameServer()->Tuning()->m_GunSpeed;
 			break;
