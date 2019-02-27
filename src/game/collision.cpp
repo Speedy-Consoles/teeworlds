@@ -541,7 +541,7 @@ int CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, CTriggers *pOutTrigger
 				int PosIndex = TilePosToIndex(iPos.x, iPos.y, GAMELAYERTYPE_SPEEDUP);
 				if(PosIndex >= 0 && m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Index > 0)
 				{
-					float Accel = m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Index * 0.05f * Fraction;
+					float Accel = m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Index * 0.1f * Fraction;
 					float Angle = m_apTiles[GAMELAYERTYPE_SPEEDUP][PosIndex].m_Flags / 256.0f * 2.0f * pi;
 					Speedup = true;
 					SpeedupVel.x += cos(Angle) * Accel;

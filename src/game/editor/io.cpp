@@ -553,6 +553,7 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 						}
 
 						// create missing layers
+						CLayerTiles *pVanillaLayer = (CLayerTiles *) pLayer;
 						for(int t = 0; t < NUM_GAMELAYERTYPES; t++)
 						{
 							if(t == GAMELAYERTYPE_COLLISION)
@@ -572,12 +573,41 @@ int CEditorMap::Load(class IStorage *pStorage, const char *pFileName, int Storag
 							{
 								if(!apGameLayers[t])
 								{
-									apGameLayers[t] = new CLayerGame(50, 50, t);
+									apGameLayers[t] = new CLayerGame(pVanillaLayer->m_Width, pVanillaLayer->m_Height, t);
 									pGroup->AddLayer(apGameLayers[t]);
 								}
 								else
 								{
 									pGroup->AddLayer(apGameLayers[t]);
+								}
+							}
+						}
+
+						// try to convert tiles in vanilla layer from old DDRace
+						if(DDRLayersNum == 0)
+						{
+							for(int i = 0; i < pVanillaLayer->m_Width * pVanillaLayer->m_Height; ++i)
+							{
+								int Index = pVanillaLayer->m_pTiles[i].m_Index;
+								if(Index >= 128)
+									continue;
+								switch(Index)
+								{
+									case TILE_AIR:
+									case TILE_SOLID:
+									case TILE_DEATH:
+									case TILE_NOHOOK:
+										break;
+									case 9:
+										apGameLayers[GAMELAYERTYPE_FREEZE]->m_pTiles[i].m_Index = 1;
+										pVanillaLayer->m_pTiles[i].m_Index = 0;
+										break;
+									case 11:
+										apGameLayers[GAMELAYERTYPE_FREEZE]->m_pTiles[i].m_Index = 2;
+										pVanillaLayer->m_pTiles[i].m_Index = 0;
+										break;
+									default:
+										break;
 								}
 							}
 						}
