@@ -80,7 +80,8 @@ void CPickup::Tick()
 						break;
 
 					case PICKUP_ARMOR:
-						if(pChr->IncreaseArmor(1))
+						if((!GameServer()->IsDDRace() && pChr->IncreaseArmor(1))
+								|| (GameServer()->IsDDRace() && pChr->TakeWeapons()))
 						{
 							Picked = true;
 							GameServer()->CreateSound(Events(), m_Pos, SOUND_PICKUP_ARMOR, pChr->SoloClientID());

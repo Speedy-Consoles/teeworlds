@@ -469,6 +469,24 @@ bool CCharacter::GiveWeapon(int Weapon, int Ammo)
 	return false;
 }
 
+bool CCharacter::TakeWeapons()
+{
+	bool SomethingTaken = false;
+	for(int i = 0; i < NUM_WEAPONS; ++i)
+	{
+		if(i == WEAPON_HAMMER || i == WEAPON_GUN)
+			continue;
+		if(m_aWeapons[i].m_Got)
+			SomethingTaken = true;
+		m_aWeapons[i].m_Got = false;
+		m_aWeapons[i].m_Ammo = 0;
+	}
+
+	if(m_ActiveWeapon != WEAPON_HAMMER && m_ActiveWeapon != WEAPON_GUN)
+		m_ActiveWeapon = WEAPON_HAMMER;
+	return SomethingTaken;
+}
+
 void CCharacter::GiveNinja()
 {
 	if(!m_aWeapons[WEAPON_NINJA].m_Got)
