@@ -441,13 +441,13 @@ void CCollision::MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, i
 bool CCollision::TestBox(vec2 Pos, vec2 Size, bool Vanilla) const
 {
 	Size *= 0.5f;
-	if(GetCollisionAt(Pos.x-Size.x, Pos.y-Size.y, Vanilla))
+	if(GetCollisionAt(Pos.x-Size.x, Pos.y-Size.y, Vanilla)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionAt(Pos.x+Size.x, Pos.y-Size.y, Vanilla))
+	if(GetCollisionAt(Pos.x+Size.x, Pos.y-Size.y, Vanilla)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionAt(Pos.x-Size.x, Pos.y+Size.y, Vanilla))
+	if(GetCollisionAt(Pos.x-Size.x, Pos.y+Size.y, Vanilla)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionAt(Pos.x+Size.x, Pos.y+Size.y, Vanilla))
+	if(GetCollisionAt(Pos.x+Size.x, Pos.y+Size.y, Vanilla)&COLFLAG_SOLID)
 		return true;
 	return false;
 }
@@ -455,13 +455,13 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size, bool Vanilla) const
 bool CCollision::TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) const
 {
 	Size *= 0.5f;
-	if(GetCollisionMove(Pos.x-Size.x, Pos.y-Size.y, OldPos.x-Size.x, OldPos.y-Size.y, Vanilla, DIRFLAG_UP|DIRFLAG_LEFT))
+	if(GetCollisionMove(Pos.x-Size.x, Pos.y-Size.y, OldPos.x-Size.x, OldPos.y-Size.y, Vanilla, DIRFLAG_UP|DIRFLAG_LEFT)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionMove(Pos.x+Size.x, Pos.y-Size.y, OldPos.x+Size.x, OldPos.y-Size.y, Vanilla, DIRFLAG_UP|DIRFLAG_RIGHT))
+	if(GetCollisionMove(Pos.x+Size.x, Pos.y-Size.y, OldPos.x+Size.x, OldPos.y-Size.y, Vanilla, DIRFLAG_UP|DIRFLAG_RIGHT)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionMove(Pos.x-Size.x, Pos.y+Size.y, OldPos.x-Size.x, OldPos.y+Size.y, Vanilla, DIRFLAG_DOWN|DIRFLAG_LEFT))
+	if(GetCollisionMove(Pos.x-Size.x, Pos.y+Size.y, OldPos.x-Size.x, OldPos.y+Size.y, Vanilla, DIRFLAG_DOWN|DIRFLAG_LEFT)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionMove(Pos.x+Size.x, Pos.y+Size.y, OldPos.x+Size.x, OldPos.y+Size.y, Vanilla, DIRFLAG_DOWN|DIRFLAG_RIGHT))
+	if(GetCollisionMove(Pos.x+Size.x, Pos.y+Size.y, OldPos.x+Size.x, OldPos.y+Size.y, Vanilla, DIRFLAG_DOWN|DIRFLAG_RIGHT)&COLFLAG_SOLID)
 		return true;
 	return false;
 }
@@ -469,9 +469,9 @@ bool CCollision::TestBoxMove(vec2 Pos, vec2 OldPos, vec2 Size, bool Vanilla) con
 bool CCollision::TestHLineMove(vec2 Pos, vec2 OldPos, float Length, bool Vanilla) const
 {
 	Length *= 0.5f;
-	if(GetCollisionMove(Pos.x-Length, Pos.y, OldPos.x-Length, OldPos.y, Vanilla, DIRFLAG_UP|DIRFLAG_DOWN))
+	if(GetCollisionMove(Pos.x-Length, Pos.y, OldPos.x-Length, OldPos.y, Vanilla, DIRFLAG_UP|DIRFLAG_DOWN)&COLFLAG_SOLID)
 		return true;
-	if(GetCollisionMove(Pos.x+Length, Pos.y, OldPos.x+Length, OldPos.y, Vanilla, DIRFLAG_UP|DIRFLAG_DOWN))
+	if(GetCollisionMove(Pos.x+Length, Pos.y, OldPos.x+Length, OldPos.y, Vanilla, DIRFLAG_UP|DIRFLAG_DOWN)&COLFLAG_SOLID)
 		return true;
 	return false;
 }
