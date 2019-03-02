@@ -834,13 +834,19 @@ void CEditor::CallbackSaveMap(const char *pFileName, int StorageType, void *pUse
 
 void CEditor::DoToolbar(CUIRect ToolBar)
 {
+	CUIRect TB_Vanilla, TB_DDRace;
 	CUIRect TB_Top, TB_Bottom;
 	CUIRect Button;
 
-	ToolBar.HSplitTop(ToolBar.h/2.0f, &TB_Top, &TB_Bottom);
+	ToolBar.HSplitTop(ToolBar.h/3.0*2.0f, &TB_Vanilla, &TB_DDRace);
+	TB_Vanilla.HSplitTop(TB_Vanilla.h/2.0f, &TB_Top, &TB_Bottom);
 
 	TB_Top.HSplitBottom(2.5f, &TB_Top, 0);
+	TB_Top.HSplitTop(2.5f, 0, &TB_Top);
+	TB_Bottom.HSplitBottom(2.5f, &TB_Bottom, 0);
 	TB_Bottom.HSplitTop(2.5f, 0, &TB_Bottom);
+	TB_DDRace.HSplitBottom(2.5f, &TB_DDRace, 0);
+	TB_DDRace.HSplitTop(2.5f, 0, &TB_DDRace);
 
 	// ctrl+o to open
 	if(Input()->KeyPress(KEY_O) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL)) && m_Dialog == DIALOG_NONE)
@@ -1133,9 +1139,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 	{
 		int Enabled = m_Brush.IsEmpty()?-1:0;
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 		static int s_SwitchButton = 0;
 		if(DoButton_Ex(&s_SwitchButton, "TS", Enabled, &Button, 0, "[D] Toggle switch", CUI::CORNER_ALL) || Input()->KeyPress(KEY_D))
 		{
@@ -1143,15 +1147,15 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushToggleSwitch();
 		}
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-		TB_Bottom.VSplitLeft(30.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
+		TB_DDRace.VSplitLeft(30.0f, &Button, &TB_DDRace);
 		
 		static int s_SwitchGroup = 1;
 		s_SwitchGroup = UiDoValueSelector(&s_SwitchGroup, &Button, "", s_SwitchGroup, 1, 255, 1, 10.0f, "Set the switch group. Use left mouse button to drag and change the value. Hold shift to be more precise.");
 
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 
 		static int s_SetSwitchGroup = 0;
 		if(DoButton_Ex(&s_SetSwitchGroup, "SG", Enabled, &Button, 0, "[F] Set switch group", CUI::CORNER_ALL) || Input()->KeyPress(KEY_F))
@@ -1160,8 +1164,8 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushSetSwitchGroup(s_SwitchGroup);
 		}
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 
 		static int s_IncreaseSwitchGroup = 0;
 		if(DoButton_Ex(&s_IncreaseSwitchGroup, "+SG", Enabled, &Button, 0, "[G] Increase switch group", CUI::CORNER_L) || Input()->KeyPress(KEY_G))
@@ -1170,7 +1174,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushIncreaseSwitchGroup();
 		}
 
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 
 		static int s_DecreaseSwitchGroup = 0;
 		if(DoButton_Ex(&s_DecreaseSwitchGroup, "-SG", Enabled, &Button, 0, "[B] Decrease switch group", CUI::CORNER_R) || Input()->KeyPress(KEY_B))
@@ -1179,14 +1183,14 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushDecreaseSwitchGroup();
 		}
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-		TB_Bottom.VSplitLeft(30.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
+		TB_DDRace.VSplitLeft(30.0f, &Button, &TB_DDRace);
 		
 		static int s_SwitchDuration = -1;
 		s_SwitchDuration = UiDoValueSelector(&s_SwitchDuration, &Button, "", s_SwitchDuration, -1, 254, 1, 10.0f, "Set the switch duration (seconds). Use left mouse button to drag and change the value. Hold shift to be more precise.");
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 
 		static int s_SetSwitchDuration = 0;
 		if(DoButton_Ex(&s_SetSwitchDuration, "SD", Enabled, &Button, 0, "[Q] Set switch duration", CUI::CORNER_ALL) || Input()->KeyPress(KEY_Q))
@@ -1195,8 +1199,8 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushSetSwitchDuration(s_SwitchDuration);
 		}
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 
 		static int s_IncreaseSwitchDuration = 0;
 		if(DoButton_Ex(&s_IncreaseSwitchDuration, "+SD", Enabled, &Button, 0, "[W] Increase switch group", CUI::CORNER_L) || Input()->KeyPress(KEY_W))
@@ -1205,7 +1209,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushIncreaseSwitchDuration();
 		}
 
-		TB_Bottom.VSplitLeft(40.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(40.0f, &Button, &TB_DDRace);
 
 		static int s_DecreaseSwitchDuration = 0;
 		if(DoButton_Ex(&s_DecreaseSwitchDuration, "-SD", Enabled, &Button, 0, "[E] Decrease switch group", CUI::CORNER_R) || Input()->KeyPress(KEY_E))
@@ -1218,9 +1222,9 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 	{
 		int Enabled = m_Brush.IsEmpty()?-1:0;
 
-		TB_Bottom.VSplitLeft(10.0f, 0, &TB_Bottom);
+		TB_DDRace.VSplitLeft(10.0f, 0, &TB_DDRace);
 
-		TB_Bottom.VSplitLeft(25.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(25.0f, &Button, &TB_DDRace);
 		static int s_InOutButton = 0;
 		if(DoButton_Ex(&s_InOutButton, "I/O", Enabled, &Button, 0, "[Z] Toggle teleporter in/out", CUI::CORNER_L) || Input()->KeyPress(KEY_Z))
 		{
@@ -1228,7 +1232,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushToggleTeleIO();
 		}
 
-		TB_Bottom.VSplitLeft(55.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(55.0f, &Button, &TB_DDRace);
 		static int s_CutOwnButton = 0;
 		if(DoButton_Ex(&s_CutOwnButton, "Cut own", Enabled, &Button, 0, "[X] Toggle teleporter cut own hook", 0) || Input()->KeyPress(KEY_X))
 		{
@@ -1236,7 +1240,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushToggleTeleCutOwn();
 		}
 
-		TB_Bottom.VSplitLeft(60.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(60.0f, &Button, &TB_DDRace);
 		static int s_CutOtherButton = 0;
 		if(DoButton_Ex(&s_CutOtherButton, "Cut other", Enabled, &Button, 0, "[C] Toggle teleporter cut other's hook", 0) || Input()->KeyPress(KEY_C))
 		{
@@ -1244,7 +1248,7 @@ void CEditor::DoToolbar(CUIRect ToolBar)
 				m_Brush.m_lLayers[i]->BrushToggleTeleCutOther();
 		}
 
-		TB_Bottom.VSplitLeft(80.0f, &Button, &TB_Bottom);
+		TB_DDRace.VSplitLeft(80.0f, &Button, &TB_DDRace);
 		static int s_ResetVelButton = 0;
 		if(DoButton_Ex(&s_ResetVelButton, "Reset velocity", Enabled, &Button, 0, "[V] Toggle teleporter reset velocity", CUI::CORNER_R) || Input()->KeyPress(KEY_V))
 		{
@@ -4304,7 +4308,7 @@ void CEditor::Render()
 	{
 
 		View.HSplitTop(16.0f, &MenuBar, &View);
-		View.HSplitTop(53.0f, &ToolBar, &View);
+		View.HSplitTop(79.5f, &ToolBar, &View);
 		View.VSplitLeft(100.0f, &ToolBox, &View);
 		View.HSplitBottom(16.0f, &View, &StatusBar);
 
