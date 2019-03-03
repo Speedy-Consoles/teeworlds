@@ -222,8 +222,8 @@ void CControls::ClampMousePos()
 {
 	if(m_pClient->m_Snap.m_SpecInfo.m_Active && !m_pClient->m_Snap.m_SpecInfo.m_UsePosition)
 	{
-		m_MousePos.x = clamp(m_MousePos.x, 200.0f, GetDDRTeamCollision(m_pClient->m_LocalWorldID)->GetWidth()*32-200.0f);
-		m_MousePos.y = clamp(m_MousePos.y, 200.0f, GetDDRTeamCollision(m_pClient->m_LocalWorldID)->GetHeight()*32-200.0f);
+		m_MousePos.x = clamp(m_MousePos.x, 200.0f, GetDDRTeamCollision(0)->GetWidth()*32-200.0f);
+		m_MousePos.y = clamp(m_MousePos.y, 200.0f, GetDDRTeamCollision(0)->GetHeight()*32-200.0f);
 
 	}
 	else
